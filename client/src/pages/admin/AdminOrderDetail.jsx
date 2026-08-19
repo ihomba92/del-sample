@@ -28,6 +28,7 @@ import {
 } from '@/features/admin/adminSlice'
 import { STATUS_META } from '@/utils/constants'
 import { distance, duration, fullDate, money } from '@/utils/formatters'
+import { useLivePoll } from '@/hooks/useLivePoll'
 import { useToast } from '@/hooks/useToast'
 
 const STATUS_OPTIONS = Object.entries(STATUS_META).map(([value, meta]) => ({
@@ -58,18 +59,22 @@ export default function AdminOrderDetail() {
     dispatch(fetchCouriers())
   }, [dispatch, id])
 
+  useLivePoll(() => {
+    dispatch(fetchAdminOrder(id))
+    dispatch(fetchCouriers())
+  })
+
+  const orderId = order?.id ?? null
+  const serverCourierId = order?.courier?.id ?? null
+  const serverStatus = order?.status ?? null
+
   useEffect(() => {
-    if (order) {
-      setCourierId(
-        order.courier
-          ? String(order.courier.id)
-          : order.preferred_courier
-            ? String(order.preferred_courier.id)
-            : '',
-      )
-      setNextStatus(order.status)
-    }
-  }, [order])
+    if (!orderId) return
+    setCourierId(serverCourierId ? String(serverCourierId) : '')
+    setNextStatus(serverStatus)
+    // Keyed on the server's own values rather than the order object: polling hands back a new
+    // object every few seconds and would otherwise wipe a choice the admin has not saved yet.
+  }, [orderId, serverCourierId, serverStatus])
 
   if (status === 'loading' || (status === 'idle' && !order)) {
     return (
@@ -128,10 +133,18 @@ export default function AdminOrderDetail() {
     }
   }
 
+  const AVAILABILITY_LABEL = {
+    available: 'on duty',
+    busy: 'on duty, busy',
+    offline: 'off duty',
+  }
+
   const courierOptions = couriers.map((courier) => ({
     value: String(courier.id),
-    label: `${courier.name} · ${courier.active_orders} active`,
+    label: `${courier.name} · ${AVAILABILITY_LABEL[courier.availability]} · ${courier.active_orders} active`,
   }))
+
+  const chosenCourier = couriers.find((courier) => String(courier.id) === courierId)
 
   return (
     <PageContainer>
@@ -140,7 +153,7 @@ export default function AdminOrderDetail() {
           <button
             type="button"
             onClick={() => navigate('/admin/orders')}
-            className="font-body text-sm text-slate-500 underline-offset-4 hover:underline"
+            className="-my-1.5 inline-block py-1.5 font-body text-sm text-slate-500 underline-offset-4 hover:underline"
           >
             ← All orders
           </button>
@@ -184,7 +197,7 @@ export default function AdminOrderDetail() {
             <dl className="mt-6 grid grid-cols-2 gap-3.5 border-t border-slate-100 pt-3.5 sm:grid-cols-4">
               <Fact label="Distance" value={distance(order.distance_km)} />
               <Fact label="Est. time" value={duration(order.duration_min)} />
-              <Fact label="Weight" value={`${order.weight_kg} kg`} />
+              <Fact label="Parcel band" value={order.price_breakdown?.category_label} />
               <Fact label="Value" value={money(order.price_kes)} />
             </dl>
             <dl className="mt-3.5 grid grid-cols-2 gap-3.5 border-t border-slate-100 pt-3.5">
@@ -212,10 +225,12 @@ export default function AdminOrderDetail() {
               onChange={(event) => setCourierId(event.target.value)}
               options={courierOptions}
               placeholder="Choose a courier"
+              hint="Riders set their own availability. Off-duty riders are listed last."
             />
-            {order.preferred_courier && (
-              <p className="mt-2.5 rounded-xl bg-blue-100 px-3.5 py-2.5 font-body text-sm text-blue-700">
-                Customer requested <strong>{order.preferred_courier.name}</strong>.
+            {chosenCourier && chosenCourier.availability === 'offline' && (
+              <p className="mt-2.5 rounded-xl bg-amber-100 px-3.5 py-2.5 font-body text-sm text-amber-800">
+                {chosenCourier.name} is off duty right now. You can still assign this delivery, but
+                they may not pick it up until they come back on.
               </p>
             )}
             <Button

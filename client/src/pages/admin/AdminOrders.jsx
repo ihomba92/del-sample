@@ -23,10 +23,12 @@ import {
   setAdminOrderFilters,
 } from '@/features/admin/adminSlice'
 import { STATUS_META } from '@/utils/constants'
+import { useLivePoll } from '@/hooks/useLivePoll'
 import { useDebounce } from '@/hooks/useDebounce'
 
 const STATUS_OPTIONS = [
   { value: '', label: 'All statuses' },
+  { value: 'active', label: 'In motion (not yet closed)' },
   ...Object.entries(STATUS_META).map(([value, meta]) => ({ value, label: meta.label })),
 ]
 
@@ -44,17 +46,29 @@ export default function AdminOrders() {
   const [search, setSearch] = useState(filters.search)
   const debouncedSearch = useDebounce(search)
 
+  // Filters coming from the URL must land before the first fetch. Firing an
+  // unfiltered request first is not just wasteful: its response can arrive after
+  // the filtered one and overwrite the list with everything.
+  const [hydrated, setHydrated] = useState(false)
+
   useEffect(() => {
     dispatch(fetchCouriers())
+    const nextFilters = { page: 1 }
     const initialStatus = searchParams.get('status')
-    if (initialStatus) dispatch(setAdminOrderFilters({ status: initialStatus, page: 1 }))
+    const initialCourier = searchParams.get('courier_id')
+    if (initialStatus) nextFilters.status = initialStatus
+    if (initialCourier) nextFilters.courier_id = initialCourier
+    if (initialStatus || initialCourier) dispatch(setAdminOrderFilters(nextFilters))
+    setHydrated(true)
   }, [dispatch, searchParams])
 
   useEffect(() => {
+    if (!hydrated) return
     dispatch(setAdminOrderFilters({ search: debouncedSearch, page: 1 }))
-  }, [debouncedSearch, dispatch])
+  }, [debouncedSearch, dispatch, hydrated])
 
   useEffect(() => {
+    if (!hydrated) return
     dispatch(
       fetchAdminOrders({
         page: filters.page,
@@ -64,7 +78,19 @@ export default function AdminOrders() {
         search: filters.search || undefined,
       }),
     )
-  }, [dispatch, filters])
+  }, [dispatch, filters, hydrated])
+
+  useLivePoll(() =>
+    dispatch(
+      fetchAdminOrders({
+        page: filters.page,
+        per_page: 10,
+        status: filters.status || undefined,
+        courier_id: filters.courier_id || undefined,
+        search: filters.search || undefined,
+      }),
+    ),
+  )
 
   const courierOptions = [
     { value: '', label: 'Any courier' },

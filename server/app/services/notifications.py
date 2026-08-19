@@ -31,7 +31,7 @@ def _admins():
     from ..models import User
 
     return [
-        _party(admin.name, admin.email, admin.phone, sms_enabled=False)
+        _party(admin.name, admin.notification_email, admin.phone, sms_enabled=False)
         for admin in User.query.filter_by(role=ROLE_ADMIN, is_active=True).all()
     ]
 
@@ -40,12 +40,12 @@ def _audience(order):
     people = {}
 
     if order.customer:
-        people["customer"] = _party(order.customer.name, order.customer.email, order.customer.phone)
+        people["customer"] = _party(order.customer.name, order.customer.notification_email, order.customer.phone)
 
     people["recipient"] = _party(order.recipient_name, order.recipient_email, order.recipient_phone)
 
     if order.courier:
-        people["courier"] = _party(order.courier.name, order.courier.email, order.courier.phone)
+        people["courier"] = _party(order.courier.name, order.courier.notification_email, order.courier.phone)
 
     people["admins"] = _admins()
     return people
@@ -79,23 +79,8 @@ def _copy(order, event):
                     [
                         f"{customer_name} placed order <strong>{code}</strong> ({origin} → {target}, "
                         f"{order.distance_km} km, {total}).",
-                        (
-                            f"They asked for {order.preferred_courier.name} as their preferred rider."
-                            if order.preferred_courier
-                            else "No preferred rider was requested."
-                        ),
                     ],
                     None,
-                ),
-                "preferred_courier": (
-                    "You were requested for a delivery",
-                    [
-                        f"{customer_name} asked for you on order <strong>{code}</strong> "
-                        f"({origin} → {target}).",
-                        "Operations will confirm the assignment shortly.",
-                    ],
-                    f"Deliveroo: {customer_name} requested you for order {code}, {origin} to {target}. "
-                    f"Awaiting confirmation.",
                 ),
             },
         )
@@ -278,15 +263,6 @@ def notify(order, event):
         party = people.get(key)
         if entry and party:
             _dispatch(party, subject, entry[0], entry[1], entry[2], order.tracking_code)
-
-    preferred = copy.get("preferred_courier")
-    if preferred and order.preferred_courier and not order.courier:
-        party = _party(
-            order.preferred_courier.name,
-            order.preferred_courier.email,
-            order.preferred_courier.phone,
-        )
-        _dispatch(party, subject, preferred[0], preferred[1], preferred[2], order.tracking_code)
 
     admin_entry = copy.get("admins")
     if admin_entry:

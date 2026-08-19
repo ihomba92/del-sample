@@ -56,6 +56,17 @@ export const updateProfile = createAsyncThunk(
   },
 )
 
+export const changePassword = createAsyncThunk(
+  'auth/changePassword',
+  async (payload, { rejectWithValue }) => {
+    try {
+      return await authApi.changePassword(payload)
+    } catch (error) {
+      return rejectWithValue(extractError(error, 'Could not change your password'))
+    }
+  },
+)
+
 export const logout = createAsyncThunk('auth/logout', async () => {
   try {
     await authApi.logout()

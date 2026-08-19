@@ -6,7 +6,7 @@ import { distance, money, shortDate } from '@/utils/formatters'
 export default function OrderTable({ orders, basePath = '/admin/orders' }) {
   return (
     <div className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-inset ring-slate-100">
-      <div className="hidden overflow-x-auto lg:block">
+      <div className="hidden overflow-x-auto xl:block">
         <table className="w-full border-collapse text-left">
           <thead>
             <tr className="border-b border-slate-100 bg-slate-50/60">
@@ -73,7 +73,7 @@ export default function OrderTable({ orders, basePath = '/admin/orders' }) {
         </table>
       </div>
 
-      <ul className="divide-y divide-slate-100 lg:hidden">
+      <ul className="divide-y divide-slate-100 xl:hidden">
         {orders.map((order) => (
           <li key={order.id}>
             <Link to={`${basePath}/${order.id}`} className="flex flex-col gap-2.5 p-6">

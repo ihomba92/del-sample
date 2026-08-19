@@ -15,6 +15,8 @@ const initialState = {
   detailError: null,
 
   stats: null,
+  isAvailable: false,
+  availabilitySaving: false,
   saving: false,
   saveError: null,
 }
@@ -68,6 +70,18 @@ export const pushLocation = createAsyncThunk(
 
 export const fetchCourierStats = createAsyncThunk('couriers/stats', async () => courierApi.stats())
 
+export const setAvailability = createAsyncThunk(
+  'couriers/setAvailability',
+  async (isAvailable, { rejectWithValue }) => {
+    try {
+      const data = await courierApi.setAvailability(isAvailable)
+      return data.is_available
+    } catch (error) {
+      return rejectWithValue(extractError(error, 'Could not change your availability'))
+    }
+  },
+)
+
 const couriersSlice = createSlice({
   name: 'couriers',
   initialState,
@@ -77,6 +91,9 @@ const couriersSlice = createSlice({
     },
     clearCourierError(state) {
       state.saveError = null
+    },
+    hydrateAvailability(state, action) {
+      state.isAvailable = Boolean(action.payload)
     },
   },
   extraReducers: (builder) => {
@@ -139,10 +156,24 @@ const couriersSlice = createSlice({
       .addCase(fetchCourierStats.fulfilled, (state, action) => {
         state.stats = action.payload
       })
+
+      .addCase(setAvailability.pending, (state) => {
+        state.availabilitySaving = true
+        state.saveError = null
+      })
+      .addCase(setAvailability.fulfilled, (state, action) => {
+        state.availabilitySaving = false
+        state.isAvailable = action.payload
+      })
+      .addCase(setAvailability.rejected, (state, action) => {
+        state.availabilitySaving = false
+        state.saveError = action.payload
+      })
   },
 })
 
-export const { setCourierFilters, clearCourierError } = couriersSlice.actions
+export const { setCourierFilters, clearCourierError, hydrateAvailability } =
+  couriersSlice.actions
 
 export const selectAssignments = (state) => state.couriers.items
 export const selectAssignmentsMeta = (state) => state.couriers.meta
@@ -155,5 +186,7 @@ export const selectAssignmentError = (state) => state.couriers.detailError
 export const selectCourierStats = (state) => state.couriers.stats
 export const selectCourierSaving = (state) => state.couriers.saving
 export const selectCourierSaveError = (state) => state.couriers.saveError
+export const selectIsAvailable = (state) => state.couriers.isAvailable
+export const selectAvailabilitySaving = (state) => state.couriers.availabilitySaving
 
 export default couriersSlice.reducer

@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { useEffect, useState } from 'react'
 
@@ -178,15 +179,20 @@ export default function AdminUsers() {
                     )}
                   </div>
 
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    fullWidth
-                    disabled={person.id === me?.id}
-                    onClick={() => openEditor(person)}
-                  >
-                    {person.id === me?.id ? 'This is you' : 'Manage access'}
-                  </Button>
+                  <div className="flex gap-2.5">
+                    <Button as={Link} to={`/admin/users/${person.id}`} size="sm" fullWidth>
+                      View details
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      fullWidth
+                      disabled={person.id === me?.id}
+                      onClick={() => openEditor(person)}
+                    >
+                      {person.id === me?.id ? 'This is you' : 'Manage access'}
+                    </Button>
+                  </div>
                 </li>
               ))}
             </ul>

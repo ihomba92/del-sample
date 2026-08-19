@@ -17,6 +17,9 @@ class User(db.Model):
     is_active = db.Column(db.Boolean, nullable=False, default=True)
 
     vehicle = db.Column(db.String(60))
+    photo_url = db.Column(db.Text)
+    contact_email = db.Column(db.String(180))
+    is_available = db.Column(db.Boolean, nullable=False, default=False)
     current_lat = db.Column(db.Float)
     current_lng = db.Column(db.Float)
     last_seen_at = db.Column(db.DateTime)
@@ -37,6 +40,18 @@ class User(db.Model):
         foreign_keys="Order.courier_id",
         lazy="dynamic",
     )
+    applications = db.relationship(
+        "CourierApplication",
+        back_populates="applicant",
+        foreign_keys="CourierApplication.applicant_id",
+        cascade="all, delete-orphan",
+        lazy="dynamic",
+    )
+
+    @property
+    def notification_email(self):
+        """Where mail actually goes. Riders log in with a company address that has no inbox."""
+        return self.contact_email or self.email
 
     @property
     def password(self):

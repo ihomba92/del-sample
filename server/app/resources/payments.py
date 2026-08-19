@@ -1,4 +1,7 @@
-from flask import Blueprint, request
+import time
+from threading import Thread
+
+from flask import Blueprint, current_app, request
 from flask_jwt_extended import jwt_required
 
 from ..constants import (
@@ -10,11 +13,13 @@ from ..constants import (
 )
 from ..extensions import db
 from ..utils.clock import utcnow
-from ..models import Payment
+from ..models import Order, Payment
 from ..schemas import checkout_schema, payment_schema
 from ..services import mpesa, notifications
 from ..utils.decorators import current_user, customer_required, owned_order_or_404
 from ..utils.errors import ApiError
+
+SIMULATED_SETTLE_SECONDS = 6
 
 payments_bp = Blueprint("payments", __name__, url_prefix="/api/payments")
 
@@ -64,10 +69,37 @@ def start_checkout(order_id):
     payment.status = PAYMENT_PROCESSING
     db.session.commit()
 
+    if result.get("simulated"):
+        _settle_simulated_payment(payment.id, SIMULATED_SETTLE_SECONDS)
+
     return {
         "payment": payment_schema.dump(payment),
         "message": result.get("customer_message") or "Check your phone to authorise the payment",
+        "simulated": bool(result.get("simulated")),
     }, 202
+
+
+def _settle_simulated_payment(payment_id, delay):
+    """Mark a simulated checkout as paid shortly after, the way a real callback would."""
+    app = current_app._get_current_object()
+
+    def run():
+        time.sleep(delay)
+        with app.app_context():
+            payment = db.session.get(Payment, payment_id)
+            if payment is None or payment.status == PAYMENT_PAID:
+                return
+            payment.status = PAYMENT_PAID
+            payment.mpesa_receipt = mpesa.simulated_receipt()
+            payment.result_description = "Simulated payment accepted"
+            payment.paid_at = utcnow()
+            db.session.commit()
+
+            order = db.session.get(Order, payment.order_id)
+            if order is not None:
+                notifications.notify(order, notifications.PAYMENT_RECEIVED)
+
+    Thread(target=run, daemon=True).start()
 
 
 @payments_bp.post("/mpesa/callback")

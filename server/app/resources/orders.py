@@ -2,7 +2,14 @@ from flask import Blueprint, request
 from flask_jwt_extended import jwt_required
 from sqlalchemy import or_
 
-from ..constants import ORDER_STATUSES, ROLE_COURIER, STATUS_CANCELLED, STATUS_PENDING, TERMINAL_STATUSES
+from ..constants import (
+    ORDER_STATUSES,
+    ROLE_COURIER,
+    STATUS_CANCELLED,
+    STATUS_PENDING,
+    TERMINAL_STATUSES,
+    WEIGHT_CATEGORIES,
+)
 from ..extensions import db
 from ..models import Order, TrackingEvent, User, generate_tracking_code
 from ..schemas import (
@@ -17,6 +24,14 @@ from ..services import maps, notifications, pricing
 from ..utils.decorators import current_user, customer_required, owned_order_or_404
 from ..utils.errors import ApiError
 from ..utils.pagination import paginate
+
+def declared_weight(data):
+    """The customer picks a band, not a number. Record the band ceiling as the weight."""
+    given = data.get("weight_kg")
+    if given:
+        return float(given)
+    return float(WEIGHT_CATEGORIES[data["weight_category"]]["max_kg"])
+
 
 orders_bp = Blueprint("orders", __name__, url_prefix="/api/orders")
 
@@ -36,7 +51,7 @@ def preview_quote():
         (data["pickup_lat"], data["pickup_lng"]),
         (data["destination_lat"], data["destination_lng"]),
     )
-    breakdown = pricing.quote(route["distance_km"], data["weight_category"], data["weight_kg"])
+    breakdown = pricing.quote(route["distance_km"], data["weight_category"], declared_weight(data))
     return {"route": route, "quote": breakdown}
 
 
@@ -79,15 +94,7 @@ def create_order():
         (data["pickup_lat"], data["pickup_lng"]),
         (data["destination_lat"], data["destination_lng"]),
     )
-    breakdown = pricing.quote(route["distance_km"], data["weight_category"], data["weight_kg"])
-
-    preferred_courier_id = data.get("preferred_courier_id")
-    if preferred_courier_id is not None:
-        preferred = User.query.filter_by(
-            id=preferred_courier_id, role=ROLE_COURIER, is_active=True
-        ).first()
-        if preferred is None:
-            raise ApiError("That rider is not available", 422)
+    breakdown = pricing.quote(route["distance_km"], data["weight_category"], declared_weight(data))
 
     order = Order(
         tracking_code=generate_tracking_code(),
@@ -101,7 +108,7 @@ def create_order():
         current_lat=data["pickup_lat"],
         current_lng=data["pickup_lng"],
         weight_category=data["weight_category"],
-        weight_kg=data["weight_kg"],
+        weight_kg=declared_weight(data),
         distance_km=route["distance_km"],
         duration_min=route["duration_min"],
         route_polyline=route["polyline"],
@@ -110,7 +117,6 @@ def create_order():
         recipient_name=data["recipient_name"],
         recipient_phone=data["recipient_phone"],
         recipient_email=data.get("recipient_email"),
-        preferred_courier_id=preferred_courier_id,
         notes=data.get("notes"),
         status=STATUS_PENDING,
     )

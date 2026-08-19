@@ -3,12 +3,17 @@ import { createPortal } from 'react-dom'
 
 export default function Modal({ open, onClose, title, description, children, footer }) {
   const panelRef = useRef(null)
+  const closeRef = useRef(onClose)
+
+  useEffect(() => {
+    closeRef.current = onClose
+  }, [onClose])
 
   useEffect(() => {
     if (!open) return undefined
 
     const onKeyDown = (event) => {
-      if (event.key === 'Escape') onClose?.()
+      if (event.key === 'Escape') closeRef.current?.()
     }
     document.addEventListener('keydown', onKeyDown)
     const previousOverflow = document.body.style.overflow
@@ -19,7 +24,10 @@ export default function Modal({ open, onClose, title, description, children, foo
       document.removeEventListener('keydown', onKeyDown)
       document.body.style.overflow = previousOverflow
     }
-  }, [open, onClose])
+    // Only `open` belongs here. Callers pass an inline onClose, so a new function
+    // arrives on every render — keeping it as a dependency re-ran this effect on
+    // each keystroke and pulled focus off whatever input the user was typing in.
+  }, [open])
 
   if (!open) return null
 
@@ -27,7 +35,7 @@ export default function Modal({ open, onClose, title, description, children, foo
     <div className="fixed inset-0 z-50 flex items-end justify-center p-3.5 sm:items-center">
       <div
         className="absolute inset-0 bg-slate-950/50 backdrop-blur-[2px]"
-        onClick={onClose}
+        onClick={() => closeRef.current?.()}
         aria-hidden="true"
       />
       <div

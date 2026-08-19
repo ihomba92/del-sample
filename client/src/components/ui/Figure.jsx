@@ -1,7 +1,7 @@
 import { useState } from 'react'
 
 const TONES = {
-  brand: 'from-brand-700 via-brand-600 to-brand-900',
+  brand: 'from-brand-300 via-brand-500 to-brand-800',
   ink: 'from-slate-800 via-slate-900 to-slate-950',
   ember: 'from-amber-500 via-amber-700 to-slate-900',
   cobalt: 'from-blue-500 via-blue-700 to-slate-950',

@@ -32,7 +32,6 @@ class Order(db.Model):
 
     customer_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
     courier_id = db.Column(db.Integer, db.ForeignKey("users.id"), index=True)
-    preferred_courier_id = db.Column(db.Integer, db.ForeignKey("users.id"))
 
     pickup_address = db.Column(db.String(255), nullable=False)
     pickup_lat = db.Column(db.Float, nullable=False)
@@ -69,7 +68,6 @@ class Order(db.Model):
 
     customer = db.relationship("User", back_populates="orders", foreign_keys=[customer_id])
     courier = db.relationship("User", back_populates="deliveries", foreign_keys=[courier_id])
-    preferred_courier = db.relationship("User", foreign_keys=[preferred_courier_id])
     events = db.relationship(
         "TrackingEvent",
         back_populates="order",

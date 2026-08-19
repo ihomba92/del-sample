@@ -26,7 +26,7 @@ export default function StatusStepper({ status }) {
                 className={[
                   'relative flex h-6 w-6 shrink-0 items-center justify-center rounded-full',
                   'font-mono text-xs font-medium transition-colors',
-                  done ? 'bg-brand-600 text-white' : 'bg-slate-100 text-slate-400',
+                  done ? 'bg-brand-400 text-brand-950' : 'bg-slate-100 text-slate-400',
                 ].join(' ')}
               >
                 {done ? '✓' : index + 1}

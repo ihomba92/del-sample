@@ -1,4 +1,5 @@
 import base64
+import uuid
 import re
 from datetime import datetime
 
@@ -20,19 +21,30 @@ def _host():
     return HOSTS.get(env, HOSTS["sandbox"])
 
 
+def _raw_credentials():
+    return (
+        current_app.config.get("MPESA_CONSUMER_KEY", ""),
+        current_app.config.get("MPESA_CONSUMER_SECRET", ""),
+        current_app.config.get("MPESA_PASSKEY", ""),
+        str(current_app.config.get("MPESA_SHORTCODE", "")),
+        current_app.config.get("MPESA_CALLBACK_URL", ""),
+    )
+
+
+def is_simulated():
+    """True when no Daraja credentials are set, so checkout runs against a stand-in."""
+    return not all(_raw_credentials())
+
+
 def _credentials():
-    key = current_app.config.get("MPESA_CONSUMER_KEY", "")
-    secret = current_app.config.get("MPESA_CONSUMER_SECRET", "")
-    passkey = current_app.config.get("MPESA_PASSKEY", "")
-    shortcode = str(current_app.config.get("MPESA_SHORTCODE", ""))
-    callback = current_app.config.get("MPESA_CALLBACK_URL", "")
-    if not all([key, secret, passkey, shortcode, callback]):
+    values = _raw_credentials()
+    if not all(values):
         raise ApiError(
             "M-Pesa is not configured. Set MPESA_CONSUMER_KEY, MPESA_CONSUMER_SECRET, "
             "MPESA_PASSKEY, MPESA_SHORTCODE and MPESA_CALLBACK_URL.",
             status_code=503,
         )
-    return key, secret, passkey, shortcode, callback
+    return values
 
 
 def normalise_phone(raw):
@@ -63,7 +75,28 @@ def access_token():
     return token
 
 
+def simulated_push(reference):
+    """Stand-in for the Daraja STK push, used when no credentials are configured."""
+    stamp = uuid.uuid4().hex[:10].upper()
+    return {
+        "checkout_request_id": f"ws_CO_SIM_{stamp}",
+        "merchant_request_id": f"SIM-{stamp}",
+        "customer_message": (
+            "Simulated M-Pesa prompt sent. This demo settles the payment automatically "
+            "in a few seconds."
+        ),
+        "simulated": True,
+    }
+
+
+def simulated_receipt():
+    return "SIM" + uuid.uuid4().hex[:7].upper()
+
+
 def stk_push(phone, amount, reference, description):
+    if is_simulated():
+        return simulated_push(reference)
+
     _key, _secret, passkey, shortcode, callback = _credentials()
     timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
     password = base64.b64encode(f"{shortcode}{passkey}{timestamp}".encode()).decode()

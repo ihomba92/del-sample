@@ -70,3 +70,23 @@ PAYMENT_STATUSES = (
     PAYMENT_PAID,
     PAYMENT_FAILED,
 )
+
+APPLICATION_PENDING = "pending"
+APPLICATION_APPROVED = "approved"
+APPLICATION_REJECTED = "rejected"
+
+APPLICATION_STATUSES = (APPLICATION_PENDING, APPLICATION_APPROVED, APPLICATION_REJECTED)
+
+VEHICLE_TYPES = (
+    ("bicycle", "Bicycle"),
+    ("motorbike", "Motorbike"),
+    ("car", "Car"),
+    ("van", "Van"),
+    ("truck", "Truck"),
+)
+
+VEHICLE_TYPE_VALUES = tuple(value for value, _label in VEHICLE_TYPES)
+
+VEHICLE_OWNERSHIP = ("own", "company")
+
+RIDER_EMAIL_DOMAIN = "riders.deliveroo.co.ke"

@@ -23,6 +23,14 @@ const initialState = {
   userFilters: { role: '', search: '', page: 1 },
 
   couriers: [],
+
+  applications: [],
+  applicationsStatus: 'idle',
+  applicationsError: null,
+  pendingApplications: 0,
+  applicationFilter: 'pending',
+  lastCredentials: null,
+
   stats: null,
   statsStatus: 'idle',
   statsError: null,
@@ -123,6 +131,40 @@ export const updateUser = createAsyncThunk(
   },
 )
 
+export const fetchApplications = createAsyncThunk(
+  'admin/applications',
+  async (status, { rejectWithValue }) => {
+    try {
+      return await adminApi.applications({ status })
+    } catch (error) {
+      return rejectWithValue(extractError(error, 'Could not load rider applications'))
+    }
+  },
+)
+
+export const approveApplication = createAsyncThunk(
+  'admin/approveApplication',
+  async ({ id, note }, { rejectWithValue }) => {
+    try {
+      return await adminApi.approveApplication(id, { note })
+    } catch (error) {
+      return rejectWithValue(extractError(error, 'Could not approve this application'))
+    }
+  },
+)
+
+export const rejectApplication = createAsyncThunk(
+  'admin/rejectApplication',
+  async ({ id, note }, { rejectWithValue }) => {
+    try {
+      const data = await adminApi.rejectApplication(id, { note })
+      return data.application
+    } catch (error) {
+      return rejectWithValue(extractError(error, 'Could not reject this application'))
+    }
+  },
+)
+
 const adminSlice = createSlice({
   name: 'admin',
   initialState,
@@ -132,6 +174,12 @@ const adminSlice = createSlice({
     },
     setAdminUserFilters(state, action) {
       state.userFilters = { ...state.userFilters, ...action.payload }
+    },
+    setApplicationFilter(state, action) {
+      state.applicationFilter = action.payload
+    },
+    clearCredentials(state) {
+      state.lastCredentials = null
     },
     clearAdminError(state) {
       state.saveError = null
@@ -233,10 +281,49 @@ const adminSlice = createSlice({
         )
       })
       .addCase(updateUser.rejected, saveRejected)
+
+      .addCase(fetchApplications.pending, (state) => {
+        state.applicationsStatus = 'loading'
+        state.applicationsError = null
+      })
+      .addCase(fetchApplications.fulfilled, (state, action) => {
+        state.applicationsStatus = 'ready'
+        state.applications = action.payload.applications
+        state.pendingApplications = action.payload.pending_count
+      })
+      .addCase(fetchApplications.rejected, (state, action) => {
+        state.applicationsStatus = 'failed'
+        state.applicationsError = action.payload
+      })
+
+      .addCase(approveApplication.pending, savePending)
+      .addCase(approveApplication.fulfilled, (state, action) => {
+        state.saving = false
+        state.lastCredentials = action.payload.credentials
+        state.applications = state.applications.filter(
+          (item) => item.id !== action.payload.application.id,
+        )
+        state.pendingApplications = Math.max(0, state.pendingApplications - 1)
+      })
+      .addCase(approveApplication.rejected, saveRejected)
+
+      .addCase(rejectApplication.pending, savePending)
+      .addCase(rejectApplication.fulfilled, (state, action) => {
+        state.saving = false
+        state.applications = state.applications.filter((item) => item.id !== action.payload.id)
+        state.pendingApplications = Math.max(0, state.pendingApplications - 1)
+      })
+      .addCase(rejectApplication.rejected, saveRejected)
   },
 })
 
-export const { setAdminOrderFilters, setAdminUserFilters, clearAdminError } = adminSlice.actions
+export const {
+  setAdminOrderFilters,
+  setAdminUserFilters,
+  setApplicationFilter,
+  clearCredentials,
+  clearAdminError,
+} = adminSlice.actions
 
 export const selectAdminOrders = (state) => state.admin.orders
 export const selectAdminOrdersMeta = (state) => state.admin.ordersMeta
@@ -257,5 +344,11 @@ export const selectStatsStatus = (state) => state.admin.statsStatus
 export const selectStatsError = (state) => state.admin.statsError
 export const selectAdminSaving = (state) => state.admin.saving
 export const selectAdminSaveError = (state) => state.admin.saveError
+export const selectApplications = (state) => state.admin.applications
+export const selectApplicationsStatus = (state) => state.admin.applicationsStatus
+export const selectApplicationsError = (state) => state.admin.applicationsError
+export const selectPendingApplications = (state) => state.admin.pendingApplications
+export const selectApplicationFilter = (state) => state.admin.applicationFilter
+export const selectLastCredentials = (state) => state.admin.lastCredentials
 
 export default adminSlice.reducer

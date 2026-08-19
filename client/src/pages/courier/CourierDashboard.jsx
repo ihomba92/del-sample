@@ -12,6 +12,10 @@ import { PageSpinner } from '@/components/ui/Spinner'
 import {
   fetchAssignments,
   fetchCourierStats,
+  hydrateAvailability,
+  selectAvailabilitySaving,
+  selectIsAvailable,
+  setAvailability,
   selectAssignments,
   selectAssignmentsError,
   selectAssignmentsMeta,
@@ -22,7 +26,10 @@ import {
 } from '@/features/couriers/couriersSlice'
 import { STATUS_META } from '@/utils/constants'
 import { distance } from '@/utils/formatters'
+import { restoreSession } from '@/features/auth/authSlice'
 import { useAuth } from '@/hooks/useAuth'
+import { useLivePoll } from '@/hooks/useLivePoll'
+import { useToast } from '@/hooks/useToast'
 
 const STATUS_OPTIONS = [
   { value: '', label: 'Everything assigned' },
@@ -31,6 +38,7 @@ const STATUS_OPTIONS = [
 
 export default function CourierDashboard() {
   const dispatch = useDispatch()
+  const toast = useToast()
   const { user } = useAuth()
 
   const orders = useSelector(selectAssignments)
@@ -39,10 +47,40 @@ export default function CourierDashboard() {
   const error = useSelector(selectAssignmentsError)
   const filters = useSelector(selectCourierFilters)
   const stats = useSelector(selectCourierStats)
+  const isAvailable = useSelector(selectIsAvailable)
+  const availabilitySaving = useSelector(selectAvailabilitySaving)
 
   useEffect(() => {
     dispatch(fetchCourierStats())
   }, [dispatch])
+
+  useEffect(() => {
+    dispatch(hydrateAvailability(user?.is_available))
+  }, [dispatch, user?.is_available])
+
+  useLivePoll(() => {
+    dispatch(fetchCourierStats())
+    dispatch(
+      fetchAssignments({
+        page: filters.page,
+        per_page: 6,
+        status: filters.status || undefined,
+      }),
+    )
+  })
+
+  const toggleAvailability = async () => {
+    const next = !isAvailable
+    const result = await dispatch(setAvailability(next))
+    if (setAvailability.fulfilled.match(result)) {
+      // The session user still carries the value it had at sign-in. Refresh it, or
+      // navigating away and back would flip the toggle to the stale value.
+      dispatch(restoreSession())
+      toast.success(next ? 'You are on duty' : 'You are off duty')
+    } else {
+      toast.error(result.payload || 'Could not change your availability')
+    }
+  }
 
   useEffect(() => {
     dispatch(
@@ -56,8 +94,14 @@ export default function CourierDashboard() {
 
   return (
     <PageContainer>
+      <AvailabilityCard
+        isAvailable={isAvailable}
+        saving={availabilitySaving}
+        onToggle={toggleAvailability}
+      />
+
       <PageHeader
-        eyebrow={`On duty · ${user?.vehicle || 'no vehicle set'}`}
+        eyebrow={`${isAvailable ? 'On duty' : 'Off duty'} · ${user?.vehicle || 'no vehicle set'}`}
         title="My route"
         description="Deliveries assigned to you. Open one to advance the stage or share your position."
       />
@@ -153,6 +197,43 @@ function Stat({ label, value, caption, accent }) {
         {value}
       </p>
       <p className={`font-body text-sm ${accent ? 'text-slate-400' : 'text-slate-500'}`}>{caption}</p>
+    </div>
+  )
+}
+
+function AvailabilityCard({ isAvailable, saving, onToggle }) {
+  return (
+    <div className="mb-6 flex flex-col gap-3.5 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-inset ring-slate-100 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+      <div className="flex items-center gap-3.5">
+        <span
+          className={`flex h-11 w-11 items-center justify-center rounded-full ${
+            isAvailable ? 'bg-emerald-100' : 'bg-slate-100'
+          }`}
+        >
+          <span
+            className={`h-3 w-3 rounded-full ${isAvailable ? 'animate-ring bg-emerald-500' : 'bg-slate-400'}`}
+          />
+        </span>
+        <div>
+          <p className="font-display text-lg font-semibold text-slate-950">
+            {isAvailable ? 'You are on duty' : 'You are off duty'}
+          </p>
+          <p className="font-body text-sm text-slate-500">
+            {isAvailable
+              ? 'Operations can assign you new deliveries.'
+              : 'Operations will not assign you anything new until you go on duty.'}
+          </p>
+        </div>
+      </div>
+
+      <Button
+        onClick={onToggle}
+        loading={saving}
+        variant={isAvailable ? 'outline' : 'primary'}
+        className="sm:shrink-0"
+      >
+        {isAvailable ? 'Go off duty' : 'Go on duty'}
+      </Button>
     </div>
   )
 }

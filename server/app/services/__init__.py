@@ -1,4 +1,4 @@
 from . import mailer, maps, mpesa, pricing, sms
-from . import notifications
+from . import notifications, onboarding
 
-__all__ = ["mailer", "maps", "mpesa", "notifications", "pricing", "sms"]
+__all__ = ["mailer", "maps", "mpesa", "notifications", "onboarding", "pricing", "sms"]

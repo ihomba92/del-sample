@@ -2,7 +2,7 @@ import Spinner from './Spinner'
 
 const VARIANTS = {
   primary:
-    'bg-brand-600 text-white hover:bg-brand-700 focus-visible:outline-brand-600 disabled:bg-brand-300',
+    'bg-brand-400 text-brand-950 hover:bg-brand-500 focus-visible:outline-brand-600 disabled:bg-brand-200 disabled:text-brand-700',
   dark: 'bg-slate-950 text-white hover:bg-slate-800 focus-visible:outline-slate-950 disabled:bg-slate-400',
   ghost:
     'bg-transparent text-slate-700 hover:bg-slate-100 focus-visible:outline-slate-400 disabled:bg-transparent disabled:text-slate-300',
@@ -43,7 +43,7 @@ export default function Button({
       disabled={Tag === 'button' ? disabled || loading : undefined}
       {...props}
     >
-      {loading && <Spinner size="sm" tone={variant === 'outline' || variant === 'ghost' ? 'dark' : 'light'} />}
+      {loading && <Spinner size="sm" tone={variant === 'dark' || variant === 'danger' ? 'light' : 'dark'} />}
       {children}
     </Tag>
   )

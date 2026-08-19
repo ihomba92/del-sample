@@ -23,6 +23,8 @@ import {
 } from '@/features/couriers/couriersSlice'
 import { NEXT_STAGE, STATUS, STATUS_META } from '@/utils/constants'
 import { distance, duration, fullDate, money } from '@/utils/formatters'
+import { useLiveLocation } from '@/hooks/useLiveLocation'
+import { useLivePoll } from '@/hooks/useLivePoll'
 import { useToast } from '@/hooks/useToast'
 
 export default function CourierOrderDetail() {
@@ -43,6 +45,13 @@ export default function CourierOrderDetail() {
   useEffect(() => {
     dispatch(fetchAssignment(id))
   }, [dispatch, id])
+
+  useLivePoll(() => dispatch(fetchAssignment(id)))
+
+  // Declared before the loading early-return: hooks must run in the same order every render.
+  const live = useLiveLocation((point) => {
+    dispatch(pushLocation({ id, lat: point.lat, lng: point.lng, note: 'Live position' }))
+  })
 
   if (status === 'loading' || (status === 'idle' && !order)) {
     return (
@@ -129,7 +138,7 @@ export default function CourierOrderDetail() {
           <button
             type="button"
             onClick={() => navigate('/courier')}
-            className="font-body text-sm text-slate-500 underline-offset-4 hover:underline"
+            className="-my-1.5 inline-block py-1.5 font-body text-sm text-slate-500 underline-offset-4 hover:underline"
           >
             ← My route
           </button>
@@ -221,13 +230,47 @@ export default function CourierOrderDetail() {
               </p>
             ) : (
               <>
+                <div
+                  className={`flex flex-col gap-2.5 rounded-xl p-3.5 ring-1 ring-inset ${
+                    live.sharing ? 'bg-brand-100 ring-brand-300' : 'bg-slate-100 ring-slate-200'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <span
+                      className={`h-2.5 w-2.5 rounded-full ${
+                        live.sharing ? 'animate-ring bg-brand-600' : 'bg-slate-400'
+                      }`}
+                      aria-hidden="true"
+                    />
+                    <p className="font-body text-sm font-semibold text-slate-900">
+                      {live.sharing ? 'Live tracking is on' : 'Live tracking is off'}
+                    </p>
+                  </div>
+                  <p className="font-body text-xs text-slate-600">
+                    {live.sharing
+                      ? 'The customer sees you move on their map. Sending only when you have actually moved.'
+                      : 'Turn this on and the customer follows your position on their map for the whole run.'}
+                  </p>
+                  <Button
+                    size="sm"
+                    variant={live.sharing ? 'outline' : 'primary'}
+                    onClick={live.sharing ? live.stop : live.start}
+                  >
+                    {live.sharing ? 'Stop sharing' : 'Start live tracking'}
+                  </Button>
+                  {live.error && (
+                    <p className="font-body text-xs text-rose-700">{live.error}</p>
+                  )}
+                </div>
+
                 <Button
                   fullWidth
                   variant="dark"
+                  className="mt-3.5"
                   loading={locating || saving}
                   onClick={shareBrowserLocation}
                 >
-                  Use my current location
+                  Send my position once
                 </Button>
 
                 <div className="mt-6 border-t border-slate-100 pt-3.5">
@@ -266,7 +309,7 @@ export default function CourierOrderDetail() {
 
           <Panel title="Parcel">
             <dl className="flex flex-col gap-2.5">
-              <Fact label="Weight" value={`${order.weight_kg} kg · ${order.price_breakdown?.category_label}`} />
+              <Fact label="Parcel band" value={`${order.price_breakdown?.category_label} · up to ${order.weight_kg} kg`} />
               <Fact label="Booked" value={fullDate(order.created_at)} />
               <Fact label="Sender" value={order.customer?.name} />
             </dl>

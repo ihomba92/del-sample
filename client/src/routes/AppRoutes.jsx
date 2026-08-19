@@ -1,10 +1,13 @@
 import { Route, Routes } from 'react-router-dom'
 
 import About from '@/pages/About'
+import AdminApplications from '@/pages/admin/AdminApplications'
 import AdminDashboard from '@/pages/admin/AdminDashboard'
 import AdminOrderDetail from '@/pages/admin/AdminOrderDetail'
 import AdminOrders from '@/pages/admin/AdminOrders'
+import AdminUserDetail from '@/pages/admin/AdminUserDetail'
 import AdminUsers from '@/pages/admin/AdminUsers'
+import BecomeCourier from '@/pages/customer/BecomeCourier'
 import CourierDashboard from '@/pages/courier/CourierDashboard'
 import CourierOrderDetail from '@/pages/courier/CourierOrderDetail'
 import CustomerDashboard from '@/pages/customer/CustomerDashboard'
@@ -36,6 +39,7 @@ export default function AppRoutes() {
           <Route path="/dashboard" element={<CustomerDashboard />} />
           <Route path="/orders/new" element={<NewOrder />} />
           <Route path="/orders/:id" element={<OrderDetail />} />
+          <Route path="/become-a-rider" element={<BecomeCourier />} />
         </Route>
 
         <Route element={<RoleRoute allow={[ROLES.COURIER]} />}>
@@ -48,6 +52,8 @@ export default function AppRoutes() {
           <Route path="/admin/orders" element={<AdminOrders />} />
           <Route path="/admin/orders/:id" element={<AdminOrderDetail />} />
           <Route path="/admin/users" element={<AdminUsers />} />
+          <Route path="/admin/users/:id" element={<AdminUserDetail />} />
+          <Route path="/admin/applications" element={<AdminApplications />} />
         </Route>
       </Route>
 
