@@ -25,14 +25,15 @@ import {
   selectStatsError,
   selectStatsStatus,
 } from '@/features/admin/adminSlice'
+import { useLivePoll } from '@/hooks/useLivePoll'
 import { STATUS_META } from '@/utils/constants'
 import { money, shortDate } from '@/utils/formatters'
 
 const SLICE_COLORS = {
   pending: '#739296',
   picked_up: '#3f6fe4',
-  in_transit: '#f2900d',
-  delivered: '#0b8c64',
+  in_transit: '#7c3aed',
+  delivered: '#059669',
   cancelled: '#e0483c',
 }
 
@@ -45,6 +46,8 @@ export default function AdminDashboard() {
   useEffect(() => {
     dispatch(fetchStats())
   }, [dispatch])
+
+  useLivePoll(() => dispatch(fetchStats()))
 
   if (status === 'loading' || status === 'idle') {
     return (
@@ -89,15 +92,32 @@ export default function AdminDashboard() {
       />
 
       <div className="mt-6 grid gap-2.5 sm:grid-cols-2 xl:grid-cols-4">
-        <Stat label="Total orders" value={totals.orders} caption="all time" />
-        <Stat label="In motion" value={totals.active} caption="not yet closed" accent />
+        <Stat
+          label="Total orders"
+          value={totals.orders}
+          caption="all time"
+          to="/admin/orders"
+        />
+        <Stat
+          label="In motion"
+          value={totals.active}
+          caption="not yet closed"
+          accent
+          to="/admin/orders?status=active"
+        />
         <Stat
           label="Needs a courier"
           value={totals.unassigned}
           caption="waiting on assignment"
           warn={totals.unassigned > 0}
+          to="/admin/orders?status=pending&courier_id=unassigned"
         />
-        <Stat label="Revenue" value={money(totals.revenue_kes)} caption="from delivered runs" />
+        <Stat
+          label="Revenue"
+          value={money(totals.revenue_kes)}
+          caption="from delivered runs"
+          to="/admin/orders?status=delivered"
+        />
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[1.6fr_1fr]">
@@ -111,8 +131,8 @@ export default function AdminDashboard() {
                     <stop offset="100%" stopColor="#3f6fe4" stopOpacity={0} />
                   </linearGradient>
                   <linearGradient id="deliveredFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#0b8c64" stopOpacity={0.3} />
-                    <stop offset="100%" stopColor="#0b8c64" stopOpacity={0} />
+                    <stop offset="0%" stopColor="#059669" stopOpacity={0.3} />
+                    <stop offset="100%" stopColor="#059669" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid stroke="#e9edf0" vertical={false} />
@@ -152,7 +172,7 @@ export default function AdminDashboard() {
                   type="monotone"
                   dataKey="delivered"
                   name="Delivered"
-                  stroke="#0b8c64"
+                  stroke="#059669"
                   strokeWidth={2}
                   fill="url(#deliveredFill)"
                 />
@@ -230,11 +250,14 @@ export default function AdminDashboard() {
   )
 }
 
-function Stat({ label, value, caption, accent, warn }) {
+function Stat({ label, value, caption, accent, warn, to }) {
+  const Tag = to ? Link : 'div'
   return (
-    <div
+    <Tag
+      {...(to ? { to } : {})}
       className={[
-        'rounded-2xl p-6 shadow-sm ring-1 ring-inset',
+        'block rounded-2xl p-6 shadow-sm ring-1 ring-inset transition',
+        to ? 'hover:-translate-y-0.5 hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600' : '',
         accent ? 'bg-slate-950 ring-slate-950' : warn ? 'bg-amber-100 ring-amber-300/60' : 'bg-white ring-slate-100',
       ].join(' ')}
     >
@@ -253,7 +276,16 @@ function Stat({ label, value, caption, accent, warn }) {
         {value}
       </p>
       <p className={`font-body text-sm ${accent ? 'text-slate-400' : 'text-slate-500'}`}>{caption}</p>
-    </div>
+      {to && (
+        <p
+          className={`mt-2.5 font-body text-xs font-semibold ${
+            accent ? 'text-brand-300' : warn ? 'text-amber-800' : 'text-brand-700'
+          }`}
+        >
+          Open this list →
+        </p>
+      )}
+    </Tag>
   )
 }
 

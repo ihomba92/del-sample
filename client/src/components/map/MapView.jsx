@@ -12,7 +12,7 @@ const MAP_STYLE = [
   { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#ffffff' }] },
   { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#e9edf0' }] },
   { featureType: 'poi', elementType: 'geometry', stylers: [{ color: '#e9edf0' }] },
-  { featureType: 'poi.park', elementType: 'geometry', stylers: [{ color: '#d3f8e5' }] },
+  { featureType: 'poi.park', elementType: 'geometry', stylers: [{ color: '#f1efe4' }] },
   { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#c9d7d8' }] },
   { featureType: 'transit', stylers: [{ visibility: 'off' }] },
 ]
@@ -120,7 +120,7 @@ function LiveMap({
         onUnmount={() => setMap(null)}
         onClick={onMapClick ? (event) => onMapClick({ lat: event.latLng.lat(), lng: event.latLng.lng() }) : undefined}
       >
-        {pickup?.lat && <Marker position={pickup} icon={pin('#0b8c64', '#ffffff')} title="Pickup" zIndex={2} />}
+        {pickup?.lat && <Marker position={pickup} icon={pin('#1f2937', '#ffc400')} title="Pickup" zIndex={2} />}
         {destination?.lat && (
           <Marker position={destination} icon={pin('#0d1417', '#ffffff')} title="Destination" zIndex={2} />
         )}
@@ -130,7 +130,7 @@ function LiveMap({
         {path && (
           <Polyline
             path={path}
-            options={{ strokeColor: '#0b8c64', strokeOpacity: 0.9, strokeWeight: 4 }}
+            options={{ strokeColor: '#9c5f02', strokeOpacity: 0.9, strokeWeight: 4 }}
           />
         )}
         {!path && pickup?.lat && destination?.lat && (

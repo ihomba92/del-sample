@@ -1,5 +1,5 @@
 const TONES = {
-  success: 'bg-brand-600 text-white',
+  success: 'bg-brand-400 text-brand-950',
   error: 'bg-red-500 text-white',
   info: 'bg-slate-950 text-white',
 }

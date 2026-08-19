@@ -15,6 +15,7 @@ from ..extensions import db
 from ..utils.clock import utcnow
 from ..models import Order, TrackingEvent
 from ..schemas import (
+    availability_schema,
     location_update_schema,
     order_detail_schema,
     order_schema,
@@ -104,6 +105,21 @@ def update_location(order_id):
     db.session.commit()
 
     return {"order": order_detail_schema.dump(order)}
+
+
+@couriers_bp.patch("/availability")
+@courier_required
+def set_availability():
+    """A rider marks themselves on or off duty, which is what admins see when assigning."""
+    user = current_user()
+    data = availability_schema.load(request.get_json() or {})
+
+    user.is_available = bool(data["is_available"])
+    if user.is_available:
+        user.last_seen_at = utcnow()
+    db.session.commit()
+
+    return {"is_available": user.is_available}
 
 
 @couriers_bp.get("/stats")

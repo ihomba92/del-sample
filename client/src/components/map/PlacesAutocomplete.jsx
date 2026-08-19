@@ -1,8 +1,8 @@
 import { Autocomplete, useJsApiLoader } from '@react-google-maps/api'
-import { useId, useRef, useState } from 'react'
+import { useId, useMemo, useRef, useState } from 'react'
 
 import Input from '@/components/ui/Input'
-import { MAP_LIBRARIES, MAPS_API_KEY, NAIROBI_CENTER } from '@/utils/constants'
+import { MAP_LIBRARIES, MAPS_API_KEY, NAIROBI_PLACES } from '@/utils/constants'
 
 const KENYA_BOUNDS = {
   north: 5.02,
@@ -12,22 +12,12 @@ const KENYA_BOUNDS = {
 }
 
 export default function PlacesAutocomplete(props) {
-  if (!MAPS_API_KEY) {
-    return (
-      <ManualCoordinates
-        label={props.label}
-        value={props.value}
-        onChange={props.onChange}
-        error={props.error}
-        hint="Add VITE_GOOGLE_MAPS_API_KEY for address search. Enter coordinates for now."
-      />
-    )
-  }
+  if (!MAPS_API_KEY) return <LandmarkPicker {...props} />
   return <PlacesField {...props} />
 }
 
 function PlacesField({ label, value, onChange, error, hint, placeholder }) {
-  const { isLoaded } = useJsApiLoader({
+  const { isLoaded, loadError } = useJsApiLoader({
     id: 'deliveroo-google-maps',
     googleMapsApiKey: MAPS_API_KEY,
     libraries: MAP_LIBRARIES,
@@ -54,14 +44,26 @@ function PlacesField({ label, value, onChange, error, hint, placeholder }) {
     if (!event.target.value) onChange(null)
   }
 
-  if (!isLoaded) {
+  if (loadError) {
     return (
-      <ManualCoordinates
+      <LandmarkPicker
         label={label}
         value={value}
         onChange={onChange}
         error={error}
-        hint="Loading Google Places…"
+        hint="Google Places is unavailable, so pick from the list below."
+      />
+    )
+  }
+
+  if (!isLoaded) {
+    return (
+      <LandmarkPicker
+        label={label}
+        value={value}
+        onChange={onChange}
+        error={error}
+        hint="Loading address search…"
       />
     )
   }
@@ -90,43 +92,66 @@ function PlacesField({ label, value, onChange, error, hint, placeholder }) {
   )
 }
 
-function ManualCoordinates({ label, value, onChange, error, hint }) {
-  const update = (patch) => {
-    const next = {
-      address: value?.address || '',
-      lat: value?.lat ?? NAIROBI_CENTER.lat,
-      lng: value?.lng ?? NAIROBI_CENTER.lng,
-      ...patch,
-    }
-    onChange(next.address ? next : null)
+function LandmarkPicker({ label, value, onChange, error, hint, placeholder }) {
+  const [query, setQuery] = useState(value?.address || '')
+  const [browsing, setBrowsing] = useState(false)
+  const inputId = useId()
+
+  const matches = useMemo(() => {
+    const needle = query.trim().toLowerCase()
+    if (!needle) return NAIROBI_PLACES.slice(0, 6)
+    return NAIROBI_PLACES.filter((place) => place.name.toLowerCase().includes(needle)).slice(0, 6)
+  }, [query])
+
+  const choose = (place) => {
+    setQuery(place.name)
+    setBrowsing(false)
+    onChange({ address: place.name, lat: place.lat, lng: place.lng })
   }
 
   return (
-    <div className="flex flex-col gap-2.5">
+    <div className="relative">
       <Input
+        id={inputId}
         label={label}
-        value={value?.address || ''}
-        onChange={(event) => update({ address: event.target.value })}
-        placeholder="Sarit Centre, Westlands"
+        value={query}
+        onChange={(event) => {
+          setQuery(event.target.value)
+          setBrowsing(true)
+          if (!event.target.value) onChange(null)
+        }}
+        onFocus={() => setBrowsing(true)}
+        onBlur={() => window.setTimeout(() => setBrowsing(false), 160)}
+        placeholder={placeholder || 'Sarit Centre, Westlands'}
         error={error}
-        hint={hint}
+        hint={
+          hint ||
+          (value?.lat
+            ? `Pinned at ${value.lat.toFixed(4)}, ${value.lng.toFixed(4)}`
+            : 'Start typing, then pick a pickup point from the list')
+        }
+        autoComplete="off"
       />
-      <div className="grid grid-cols-2 gap-2.5">
-        <Input
-          label="Latitude"
-          type="number"
-          step="0.0001"
-          value={value?.lat ?? ''}
-          onChange={(event) => update({ lat: Number(event.target.value) })}
-        />
-        <Input
-          label="Longitude"
-          type="number"
-          step="0.0001"
-          value={value?.lng ?? ''}
-          onChange={(event) => update({ lng: Number(event.target.value) })}
-        />
-      </div>
+
+      {browsing && matches.length > 0 && (
+        <ul className="absolute inset-x-0 top-[4.75rem] z-20 max-h-64 overflow-y-auto rounded-xl bg-white py-1.5 shadow-xl ring-1 ring-inset ring-slate-200">
+          {matches.map((place) => (
+            <li key={place.name}>
+              <button
+                type="button"
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => choose(place)}
+                className="flex w-full items-center justify-between gap-3.5 px-3.5 py-2.5 text-left transition hover:bg-brand-50"
+              >
+                <span className="font-body text-sm text-slate-800">{place.name}</span>
+                <span className="shrink-0 font-mono text-xs text-slate-400">
+                  {place.lat.toFixed(3)}, {place.lng.toFixed(3)}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   )
 }

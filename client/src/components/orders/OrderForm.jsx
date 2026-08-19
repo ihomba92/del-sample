@@ -1,9 +1,8 @@
 import Input from '@/components/ui/Input'
 import PlacesAutocomplete from '@/components/map/PlacesAutocomplete'
 
-export default function OrderForm({ values, errors, categories, couriers = [], onChange }) {
+export default function OrderForm({ values, errors, categories, onChange }) {
   const set = (patch) => onChange({ ...values, ...patch })
-  const tier = categories.find((item) => item.value === values.weight_category)
 
   return (
     <div className="flex flex-col gap-8">
@@ -24,7 +23,7 @@ export default function OrderForm({ values, errors, categories, couriers = [], o
         />
       </Section>
 
-      <Section title="Parcel" caption="Weight decides the handling multiplier.">
+      <Section title="Parcel" caption="Pick the band your parcel falls into. No scale needed.">
         <fieldset>
           <legend className="font-body text-sm font-semibold text-slate-700">
             Weight category
@@ -58,7 +57,7 @@ export default function OrderForm({ values, errors, categories, couriers = [], o
                   </span>
                   <span className="font-body text-sm text-slate-500">{category.description}</span>
                   <span className="font-mono text-xs text-slate-400">
-                    up to {category.max_kg} kg · ×{category.multiplier}
+                    up to {category.max_kg} kg
                   </span>
                 </label>
               )
@@ -68,17 +67,6 @@ export default function OrderForm({ values, errors, categories, couriers = [], o
             <p className="mt-1.5 font-body text-sm text-red-700">{errors.weight_category}</p>
           )}
         </fieldset>
-
-        <Input
-          label="Actual weight"
-          type="number"
-          min="0.1"
-          step="0.1"
-          value={values.weight_kg}
-          onChange={(event) => set({ weight_kg: event.target.value })}
-          error={errors.weight_kg}
-          hint={tier ? `${tier.label} accepts up to ${tier.max_kg} kg` : 'In kilograms'}
-        />
       </Section>
 
       <Section title="Recipient" caption="Who is receiving this parcel?">
@@ -116,54 +104,14 @@ export default function OrderForm({ values, errors, categories, couriers = [], o
         />
       </Section>
 
-      <Section title="Rider" caption="Request someone specific, or let operations choose.">
-        <div className="grid gap-2.5 sm:grid-cols-2">
-          <RiderChoice
-            active={!values.preferred_courier_id}
-            title="Any available rider"
-            detail="Operations assign the best-placed rider"
-            onSelect={() => set({ preferred_courier_id: null })}
-          />
-          {couriers.map((courier) => (
-            <RiderChoice
-              key={courier.id}
-              active={values.preferred_courier_id === courier.id}
-              title={courier.name}
-              detail={`${courier.vehicle || 'Rider'} · ${courier.active_orders} active`}
-              onSelect={() => set({ preferred_courier_id: courier.id })}
-            />
-          ))}
-        </div>
-        <p className="font-body text-xs text-slate-400">
-          A requested rider is a preference. Operations confirm the final assignment, and both of
-          you are notified either way.
+      <Section title="Rider" caption="Operations assign the rider once your order is placed.">
+        <p className="rounded-xl bg-slate-100 px-3.5 py-3 font-body text-sm text-slate-600">
+          A rider is allocated by our operations team based on who is closest and available. You
+          will get a text and an email with their name, vehicle and photo as soon as they are
+          assigned.
         </p>
       </Section>
     </div>
-  )
-}
-
-function RiderChoice({ active, title, detail, onSelect }) {
-  return (
-    <label
-      className={[
-        'flex cursor-pointer items-start gap-2.5 rounded-xl p-3.5 transition',
-        'ring-1 ring-inset focus-within:ring-2 focus-within:ring-brand-500',
-        active ? 'bg-brand-50 ring-brand-500' : 'bg-white ring-slate-200 hover:ring-slate-300',
-      ].join(' ')}
-    >
-      <input
-        type="radio"
-        name="preferred_courier"
-        checked={active}
-        onChange={onSelect}
-        className="mt-0.5 h-4 w-4 accent-brand-600"
-      />
-      <span>
-        <span className="block font-display text-base font-semibold text-slate-900">{title}</span>
-        <span className="block font-body text-sm text-slate-500">{detail}</span>
-      </span>
-    </label>
   )
 }
 

@@ -32,7 +32,7 @@ export function validateLogin(values) {
   return errors
 }
 
-export function validateOrder(values, categories) {
+export function validateOrder(values) {
   const errors = {}
   if (!values.pickup?.address) errors.pickup = 'Choose a pickup point'
   if (!values.destination?.address) errors.destination = 'Choose a destination'
@@ -44,14 +44,6 @@ export function validateOrder(values, categories) {
     errors.destination = 'Pickup and destination cannot be the same place'
   }
   if (!values.weight_category) errors.weight_category = 'Pick a weight category'
-
-  const tier = categories?.find((item) => item.value === values.weight_category)
-  const weight = Number(values.weight_kg)
-  if (!weight || weight <= 0) {
-    errors.weight_kg = 'Enter the parcel weight'
-  } else if (tier && weight > tier.max_kg) {
-    errors.weight_kg = `${tier.label} tops out at ${tier.max_kg} kg`
-  }
 
   if (!values.recipient_name || values.recipient_name.trim().length < 2) {
     errors.recipient_name = 'Who is receiving the parcel?'

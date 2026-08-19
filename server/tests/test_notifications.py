@@ -38,29 +38,28 @@ def test_order_creation_notifies_customer_and_admin(
     assert emails_to(outbox, admin.email), "admin was not emailed"
 
 
-def test_requested_rider_is_notified_at_creation(
-    client, as_customer, courier, order_payload, outbox
-):
-    order_payload["preferred_courier_id"] = courier.id
+def test_a_new_order_starts_with_no_rider(client, as_customer, order_payload):
     response = client.post("/api/orders", headers=as_customer, json=order_payload)
 
     assert response.status_code == 201
-    assert response.get_json()["order"]["preferred_courier"]["id"] == courier.id
-    assert emails_to(outbox, courier.email), "requested rider was not emailed"
+    assert response.get_json()["order"]["courier"] is None
 
 
-def test_unknown_requested_rider_is_rejected(client, as_customer, order_payload):
-    order_payload["preferred_courier_id"] = 9999
+def test_a_customer_cannot_request_a_rider(client, as_customer, courier, order_payload):
+    order_payload["preferred_courier_id"] = courier.id
     response = client.post("/api/orders", headers=as_customer, json=order_payload)
-    assert response.status_code == 422
+
+    assert response.status_code >= 400
 
 
-def test_a_customer_cannot_be_requested_as_a_rider(
-    client, as_customer, other_customer, order_payload
-):
-    order_payload["preferred_courier_id"] = other_customer.id
-    response = client.post("/api/orders", headers=as_customer, json=order_payload)
-    assert response.status_code == 422
+def test_a_customer_cannot_assign_a_rider(client, as_customer, courier, created_order):
+    response = client.patch(
+        f"/api/admin/orders/{created_order['id']}/assign",
+        headers=as_customer,
+        json={"courier_id": courier.id},
+    )
+
+    assert response.status_code == 403
 
 
 def test_assignment_notifies_customer_and_rider(

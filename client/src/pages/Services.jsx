@@ -139,6 +139,7 @@ export default function Services() {
           </div>
 
           <div className="mt-8 overflow-hidden rounded-2xl ring-1 ring-inset ring-slate-100">
+            <div className="overflow-x-auto">
             <table className="w-full border-collapse text-left">
               <thead>
                 <tr className="bg-slate-50">
@@ -146,7 +147,9 @@ export default function Services() {
                     <th
                       key={h}
                       scope="col"
-                      className="px-3.5 py-2.5 font-body text-xs font-semibold uppercase tracking-[0.1em] text-slate-500"
+                      className={`px-3.5 py-2.5 font-body text-xs font-semibold uppercase tracking-[0.1em] text-slate-500 ${
+                        h === 'Typical parcel' ? 'hidden md:table-cell' : ''
+                      }`}
                     >
                       {h}
                     </th>
@@ -168,30 +171,69 @@ export default function Services() {
                     <td className="px-3.5 py-3.5 font-mono text-sm text-slate-700">
                       {tier.handling_kes ? money(tier.handling_kes) : '—'}
                     </td>
-                    <td className="px-3.5 py-3.5 font-body text-sm text-slate-500">
+                    <td className="hidden px-3.5 py-3.5 font-body text-sm text-slate-500 md:table-cell">
                       {tier.description}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
 
-          <div className="mt-6 rounded-2xl bg-slate-950 p-6 sm:p-8">
-            <p className="font-body text-xs uppercase tracking-[0.14em] text-slate-400">
-              The formula
-            </p>
-            <p className="mt-3.5 font-mono text-sm leading-relaxed text-brand-300 sm:text-base">
-              subtotal = base fare + (distance × per-km rate)
-              <br />
-              weight charge = subtotal × (multiplier − 1)
-              <br />
-              long haul = 12% if the run exceeds 25 km
-              <br />
-              <span className="text-white">
-                total = subtotal + weight charge + handling + long haul
-              </span>
-            </p>
+          <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_1.1fr] lg:gap-10">
+            <div>
+              <h3 className="font-display text-2xl font-semibold text-slate-950">
+                A worked example
+              </h3>
+              <p className="mt-3.5 font-body text-base text-slate-600">
+                Say you are sending a pair of shoes from Sarit Centre in Westlands to Karen
+                Shopping Centre. That run is about 14 km, and shoes sit in the Standard band.
+              </p>
+              <p className="mt-3.5 font-body text-base text-slate-600">
+                Every delivery starts with a flat base fare that covers the rider being
+                dispatched. On top of that you pay for the distance actually travelled. Heavier
+                bands cost more to carry, so a share is added on the distance charge, plus a fixed
+                handling fee for the extra care. Runs over 25 km carry a long-haul surcharge, which
+                this one does not.
+              </p>
+              <p className="mt-3.5 font-body text-base text-slate-600">
+                You see this breakdown on screen before you confirm anything.
+              </p>
+            </div>
+
+            <div className="rounded-2xl bg-white p-6 ring-1 ring-inset ring-slate-200 sm:p-8">
+              <p className="font-body text-xs uppercase tracking-[0.14em] text-slate-400">
+                Westlands → Karen · 14.2 km · Standard
+              </p>
+
+              <dl className="mt-5 flex flex-col gap-3.5">
+                {[
+                  ['Base fare', 'Ksh 180', 'Dispatching a rider'],
+                  ['Distance', 'Ksh 596', '14.2 km at Ksh 42 a kilometre'],
+                  ['Standard band', 'Ksh 272', 'Added to the distance charge'],
+                  ['Handling', 'Ksh 60', 'Flat fee for the band'],
+                ].map(([label, amount, note]) => (
+                  <div key={label} className="flex items-baseline justify-between gap-5">
+                    <div>
+                      <dt className="font-body text-base text-slate-800">{label}</dt>
+                      <p className="font-body text-sm text-slate-400">{note}</p>
+                    </div>
+                    <dd className="shrink-0 font-mono text-base text-slate-700">{amount}</dd>
+                  </div>
+                ))}
+              </dl>
+
+              <div className="mt-5 flex items-baseline justify-between gap-5 border-t border-slate-200 pt-5">
+                <span className="font-display text-lg font-semibold text-slate-950">
+                  You pay
+                </span>
+                <span className="font-display text-2xl font-bold text-slate-950">Ksh 1,110</span>
+              </div>
+              <p className="mt-2.5 font-body text-xs text-slate-400">
+                Rounded to the nearest ten shillings.
+              </p>
+            </div>
           </div>
         </PageContainer>
       </section>
@@ -236,11 +278,11 @@ export default function Services() {
           </div>
         </div>
 
-        <div className="mt-12 flex flex-col items-center gap-3.5 rounded-2xl bg-brand-600 p-8 text-center">
-          <h2 className="font-display text-3xl font-bold tracking-tight text-white">
+        <div className="mt-12 flex flex-col items-center gap-3.5 rounded-2xl bg-brand-400 p-8 text-center">
+          <h2 className="font-display text-3xl font-bold tracking-tight text-brand-950">
             Get a quote in about a minute
           </h2>
-          <p className="max-w-prose font-body text-lg text-brand-50">
+          <p className="max-w-prose font-body text-lg text-brand-900">
             Sign up, drop two pins and see the price before you commit to anything.
           </p>
           <Button as={Link} to="/register" size="lg" variant="dark">

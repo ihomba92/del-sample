@@ -37,7 +37,7 @@ export default function Navbar() {
           </span>
         </Link>
 
-        <nav className="hidden items-center gap-0.5 md:flex" aria-label="Main">
+        <nav className="hidden items-center gap-0.5 lg:flex" aria-label="Main">
           {links.map((link) => (
             <NavLink
               key={link.to}
@@ -62,7 +62,7 @@ export default function Navbar() {
                 <span className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-100 font-body text-sm font-bold text-brand-800">
                   {initials(user?.name)}
                 </span>
-                <div className="hidden lg:block">
+                <div className="hidden xl:block">
                   <p className="font-body text-sm font-semibold leading-tight text-slate-900">
                     {user?.name}
                   </p>
@@ -93,7 +93,7 @@ export default function Navbar() {
             aria-label="Toggle navigation"
             aria-expanded={open}
             onClick={() => setOpen((value) => !value)}
-            className="rounded-xl p-1.5 text-slate-600 transition hover:bg-slate-100 md:hidden"
+            className="rounded-xl p-1.5 text-slate-600 transition hover:bg-slate-100 lg:hidden"
           >
             <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" aria-hidden="true">
               <path
@@ -109,7 +109,7 @@ export default function Navbar() {
 
       {open && (
         <nav
-          className="border-t border-slate-100 bg-white px-3.5 pb-3.5 md:hidden"
+          className="border-t border-slate-100 bg-white px-3.5 pb-3.5 lg:hidden"
           aria-label="Mobile navigation"
         >
           {links.map((link) => (
@@ -146,9 +146,9 @@ export default function Navbar() {
 
 function Logo() {
   return (
-    <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-600 shadow-inner">
+    <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-400 shadow-inner">
       <svg viewBox="0 0 32 32" className="h-5 w-5" fill="none" aria-hidden="true">
-        <path d="M8 21 14 9l4 7.5L20 13l4 8z" fill="white" />
+        <path d="M8 21 14 9l4 7.5L20 13l4 8z" fill="#3f2103" />
       </svg>
     </span>
   )

@@ -35,8 +35,10 @@ import {
   selectPayment,
   startCheckout,
 } from '@/features/payments/paymentsSlice'
-import { distance, duration, fullDate, money } from '@/utils/formatters'
+import Avatar from '@/components/ui/Avatar'
+import { arrivalBy, distance, duration, fullDate, money } from '@/utils/formatters'
 import { validatePhone } from '@/utils/validators'
+import { useLivePoll } from '@/hooks/useLivePoll'
 import { useToast } from '@/hooks/useToast'
 
 export default function OrderDetail() {
@@ -62,6 +64,11 @@ export default function OrderDetail() {
   const [nextDestination, setNextDestination] = useState(null)
   const [phone, setPhone] = useState('')
   const [phoneError, setPhoneError] = useState(null)
+
+  useLivePoll(() => {
+    dispatch(fetchOrder(id))
+    dispatch(fetchPayment(id))
+  })
 
   useEffect(() => {
     dispatch(fetchOrder(id))
@@ -135,7 +142,8 @@ export default function OrderDetail() {
     setPhoneError(null)
     const result = await dispatch(startCheckout({ orderId: order.id, phone }))
     if (startCheckout.fulfilled.match(result)) {
-      toast.success('Check your phone to authorise the payment')
+      setPayOpen(false)
+      toast.success(result.payload.message || 'Check your phone to authorise the payment')
     }
   }
 
@@ -148,7 +156,7 @@ export default function OrderDetail() {
           <button
             type="button"
             onClick={() => navigate('/dashboard')}
-            className="font-body text-sm text-slate-500 underline-offset-4 hover:underline"
+            className="-my-1.5 inline-block py-1.5 font-body text-sm text-slate-500 underline-offset-4 hover:underline"
           >
             ← My deliveries
           </button>
@@ -196,7 +204,7 @@ export default function OrderDetail() {
             <dl className="mt-6 grid grid-cols-2 gap-3.5 border-t border-slate-100 pt-3.5 sm:grid-cols-4">
               <Fact label="Distance" value={distance(order.distance_km)} />
               <Fact label="Est. time" value={duration(order.duration_min)} />
-              <Fact label="Weight" value={`${order.weight_kg} kg`} />
+              <Fact label="Parcel band" value={order.price_breakdown?.category_label} />
               <Fact label="Tier" value={order.price_breakdown?.category_label} />
             </dl>
           </Panel>
@@ -218,24 +226,44 @@ export default function OrderDetail() {
             </dl>
           </Panel>
 
-          <Panel title="Courier">
+          <Panel title="Your rider">
             {order.courier ? (
-              <dl className="flex flex-col gap-2.5">
-                <Fact label="Name" value={order.courier.name} />
-                <Fact label="Phone" value={order.courier.phone} mono />
-                <Fact label="Vehicle" value={order.courier.vehicle} />
-              </dl>
-            ) : (
-              <div>
-                <p className="font-body text-sm text-slate-500">
-                  No rider assigned yet. Operations will allocate one shortly.
+              <div className="flex flex-col gap-3.5">
+                <div className="flex items-center gap-3.5">
+                  <Avatar
+                    name={order.courier.name}
+                    photo={order.courier.photo_url}
+                    size="lg"
+                  />
+                  <div className="min-w-0">
+                    <p className="font-display text-lg font-semibold text-slate-950">
+                      {order.courier.name}
+                    </p>
+                    <p className="font-body text-sm text-slate-500">{order.courier.vehicle}</p>
+                    <a
+                      href={`tel:${order.courier.phone}`}
+                      className="mt-0.5 inline-block py-1.5 font-mono text-sm font-medium text-brand-700 underline underline-offset-2"
+                    >
+                      {order.courier.phone}
+                    </a>
+                  </div>
+                </div>
+                <p className="font-body text-xs text-slate-400">
+                  Check this photo matches the person before you hand over the parcel.
                 </p>
-                {order.preferred_courier && (
-                  <p className="mt-2.5 rounded-xl bg-blue-100 px-3.5 py-2.5 font-body text-sm text-blue-700">
-                    You requested {order.preferred_courier.name}. Operations will confirm.
+                {order.duration_min > 0 && order.status !== 'delivered' && (
+                  <p className="rounded-xl bg-brand-100 px-3.5 py-2.5 font-body text-sm text-brand-950">
+                    Arriving at the destination around{' '}
+                    <strong>{arrivalBy(order.duration_min)}</strong> — about{' '}
+                    {duration(order.duration_min)} on the road.
                   </p>
                 )}
               </div>
+            ) : (
+              <p className="font-body text-sm text-slate-500">
+                No rider assigned yet. Operations will allocate one shortly, and you will see their
+                photo here.
+              </p>
             )}
           </Panel>
 

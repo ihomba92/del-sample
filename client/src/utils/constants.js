@@ -27,14 +27,14 @@ export const STATUS_META = {
   },
   [STATUS.IN_TRANSIT]: {
     label: 'In transit',
-    chip: 'bg-amber-100 text-amber-700 ring-amber-300/60',
-    dot: 'bg-amber-500',
+    chip: 'bg-violet-100 text-violet-700 ring-violet-300/60',
+    dot: 'bg-violet-500',
     blurb: 'On the road to the destination',
   },
   [STATUS.DELIVERED]: {
     label: 'Delivered',
-    chip: 'bg-brand-100 text-brand-800 ring-brand-300/60',
-    dot: 'bg-brand-500',
+    chip: 'bg-emerald-100 text-emerald-700 ring-emerald-300/60',
+    dot: 'bg-emerald-500',
     blurb: 'Handed over to the recipient',
   },
   [STATUS.CANCELLED]: {
@@ -61,14 +61,37 @@ export const NEXT_STAGE = {
 export const PAYMENT_META = {
   unpaid: { label: 'Unpaid', chip: 'bg-slate-100 text-slate-600 ring-slate-200' },
   pending: { label: 'Pending', chip: 'bg-slate-100 text-slate-600 ring-slate-200' },
-  processing: { label: 'Awaiting PIN', chip: 'bg-amber-100 text-amber-700 ring-amber-300/60' },
-  paid: { label: 'Paid', chip: 'bg-brand-100 text-brand-800 ring-brand-300/60' },
+  processing: { label: 'Awaiting PIN', chip: 'bg-violet-100 text-violet-700 ring-violet-300/60' },
+  paid: { label: 'Paid', chip: 'bg-emerald-100 text-emerald-700 ring-emerald-300/60' },
   failed: { label: 'Failed', chip: 'bg-red-100 text-red-700 ring-red-300/60' },
 }
 
 export const NAIROBI_CENTER = { lat: -1.2921, lng: 36.8219 }
 
 export const MAP_LIBRARIES = ['places']
+
+export const NAIROBI_PLACES = [
+  { name: 'Sarit Centre, Westlands', lat: -1.2626, lng: 36.8028 },
+  { name: 'Yaya Centre, Kilimani', lat: -1.2932, lng: 36.7856 },
+  { name: 'The Junction Mall, Ngong Road', lat: -1.3006, lng: 36.7669 },
+  { name: 'Karen Shopping Centre', lat: -1.3191, lng: 36.7118 },
+  { name: 'Village Market, Gigiri', lat: -1.2296, lng: 36.8046 },
+  { name: 'Two Rivers Mall, Ruaka', lat: -1.2074, lng: 36.7999 },
+  { name: 'Garden City Mall, Thika Road', lat: -1.2337, lng: 36.8759 },
+  { name: 'Kencom Stage, CBD', lat: -1.2864, lng: 36.8244 },
+  { name: 'Railways Bus Terminus, CBD', lat: -1.2894, lng: 36.8270 },
+  { name: 'Syokimau Station', lat: -1.3736, lng: 36.9385 },
+  { name: 'Jomo Kenyatta International Airport', lat: -1.3192, lng: 36.9278 },
+  { name: 'Wilson Airport, Lang\'ata', lat: -1.3217, lng: 36.8148 },
+  { name: 'Nairobi Hospital, Upper Hill', lat: -1.2977, lng: 36.8123 },
+  { name: 'Kenyatta National Hospital', lat: -1.3013, lng: 36.8064 },
+  { name: 'University of Nairobi, Main Campus', lat: -1.2795, lng: 36.8165 },
+  { name: 'Thika Road Mall, Roysambu', lat: -1.2196, lng: 36.8886 },
+  { name: 'Greenspan Mall, Donholm', lat: -1.2946, lng: 36.8944 },
+  { name: 'Gikomba Market', lat: -1.2833, lng: 36.8399 },
+  { name: 'Westgate Mall, Westlands', lat: -1.2570, lng: 36.8034 },
+  { name: 'Galleria Mall, Langata', lat: -1.3448, lng: 36.7469 },
+]
 
 export const PUBLIC_NAV = [
   { to: '/', label: 'Home', end: true },
@@ -86,6 +109,7 @@ export const NAV_BY_ROLE = {
   [ROLES.CUSTOMER]: [
     { to: '/dashboard', label: 'My deliveries', end: true },
     { to: '/orders/new', label: 'Send a parcel' },
+    { to: '/become-a-rider', label: 'Ride with us' },
     { to: '/profile', label: 'Profile' },
   ],
   [ROLES.COURIER]: [
@@ -96,6 +120,7 @@ export const NAV_BY_ROLE = {
     { to: '/admin', label: 'Overview', end: true },
     { to: '/admin/orders', label: 'Orders' },
     { to: '/admin/users', label: 'People' },
+    { to: '/admin/applications', label: 'Applications' },
     { to: '/profile', label: 'Profile' },
   ],
 }

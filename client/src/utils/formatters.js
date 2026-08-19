@@ -65,3 +65,10 @@ export function titleCase(value) {
   if (!value) return ''
   return value.replace(/_/g, ' ').replace(/^\w/, (c) => c.toUpperCase())
 }
+
+export function arrivalBy(minutes) {
+  const mins = Number(minutes)
+  if (!mins || Number.isNaN(mins)) return null
+  const at = new Date(Date.now() + mins * 60000)
+  return at.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+}

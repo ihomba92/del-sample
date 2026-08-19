@@ -49,7 +49,7 @@ class Config:
     MAIL_USE_SSL = _flag("MAIL_USE_SSL", "0")
     MAIL_USERNAME = os.getenv("MAIL_USERNAME", "")
     MAIL_PASSWORD = os.getenv("MAIL_PASSWORD", "")
-    MAIL_DEFAULT_SENDER = os.getenv("MAIL_DEFAULT_SENDER", "Deliveroo <no-reply@deliveroo.test>")
+    MAIL_DEFAULT_SENDER = os.getenv("MAIL_DEFAULT_SENDER", "Deliveroo <no-reply@deliveroo.co.ke>")
     MAIL_SUPPRESS_SEND = not bool(os.getenv("MAIL_USERNAME", ""))
 
     AT_ENV = os.getenv("AT_ENV", "sandbox")

@@ -9,7 +9,13 @@ from flask_jwt_extended import (
 from ..constants import ROLE_ADMIN
 from ..extensions import db
 from ..models import User
-from ..schemas import login_schema, profile_update_schema, register_schema, user_schema
+from ..schemas import (
+    login_schema,
+    password_change_schema,
+    profile_update_schema,
+    register_schema,
+    user_schema,
+)
 from ..utils.decorators import REVOKED_TOKENS, current_user
 from ..utils.errors import ApiError, ConflictError
 
@@ -90,6 +96,24 @@ def update_me():
         setattr(user, field, value)
     db.session.commit()
     return {"user": user_schema.dump(user)}
+
+
+@auth_bp.post("/change-password")
+@jwt_required()
+def change_password():
+    """Swap the signed-in user's password after checking the current one."""
+    user = current_user()
+    data = password_change_schema.load(request.get_json() or {})
+
+    if not user.verify_password(data["current_password"]):
+        raise ApiError("Your current password is not correct", 400)
+    if data["current_password"] == data["new_password"]:
+        raise ApiError("The new password must be different from the current one", 422)
+
+    user.password = data["new_password"]
+    db.session.commit()
+
+    return {"message": "Password updated"}
 
 
 @auth_bp.post("/logout")

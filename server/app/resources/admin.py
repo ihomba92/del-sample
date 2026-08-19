@@ -4,6 +4,10 @@ from flask import Blueprint, request
 from sqlalchemy import case, func, or_
 
 from ..constants import (
+    APPLICATION_APPROVED,
+    APPLICATION_PENDING,
+    APPLICATION_REJECTED,
+    APPLICATION_STATUSES,
     ORDER_STATUSES,
     ROLE_COURIER,
     STATUS_CANCELLED,
@@ -16,10 +20,12 @@ from ..constants import (
 )
 from ..extensions import db
 from ..utils.clock import utcnow
-from ..models import Order, TrackingEvent, User
+from ..models import CourierApplication, Order, TrackingEvent, User
 from ..schemas import (
     admin_user_update_schema,
+    application_decision_schema,
     assign_courier_schema,
+    courier_application_schema,
     location_update_schema,
     order_detail_schema,
     order_schema,
@@ -27,9 +33,9 @@ from ..schemas import (
     user_schema,
     user_summary_schema,
 )
-from ..services import notifications
+from ..services import mailer, notifications, onboarding, sms
 from ..utils.decorators import admin_required, current_user
-from ..utils.errors import ApiError, NotFoundError
+from ..utils.errors import ApiError, ConflictError, NotFoundError
 from ..utils.pagination import paginate
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/api/admin")
@@ -49,7 +55,9 @@ def list_all_orders():
     query = Order.query
 
     status = request.args.get("status")
-    if status:
+    if status == "active":
+        query = query.filter(~Order.status.in_(TERMINAL_STATUSES))
+    elif status:
         if status not in ORDER_STATUSES:
             raise ApiError(f"Unknown status '{status}'")
         query = query.filter(Order.status == status)
@@ -176,16 +184,28 @@ def list_couriers():
         db.session.query(User, func.coalesce(active_load.c.active_orders, 0))
         .outerjoin(active_load, active_load.c.courier_id == User.id)
         .filter(User.role == ROLE_COURIER, User.is_active.is_(True))
-        .order_by(User.name)
+        .order_by(User.is_available.desc(), User.name)
         .all()
     )
 
     return {
         "couriers": [
-            {**user_summary_schema.dump(courier), "active_orders": int(load)}
+            {
+                **user_summary_schema.dump(courier),
+                "active_orders": int(load),
+                "availability": _availability(courier, int(load)),
+            }
             for courier, load in rows
         ]
     }
+
+
+def _availability(courier, active_orders):
+    if not courier.is_available:
+        return "offline"
+    if active_orders >= 3:
+        return "busy"
+    return "available"
 
 
 @admin_bp.get("/users")
@@ -319,4 +339,169 @@ def dashboard_stats():
         "by_status": by_status,
         "daily": daily,
         "couriers": couriers,
+    }
+
+
+@admin_bp.get("/courier-applications")
+@admin_required
+def list_applications():
+    """Rider applications, newest first, pending ones by default."""
+    status = request.args.get("status", APPLICATION_PENDING)
+
+    query = CourierApplication.query
+    if status != "all":
+        if status not in APPLICATION_STATUSES:
+            raise ApiError(f"Unknown application status '{status}'")
+        query = query.filter(CourierApplication.status == status)
+
+    applications = query.order_by(CourierApplication.created_at.desc()).all()
+
+    return {
+        "applications": [courier_application_schema.dump(a) for a in applications],
+        "pending_count": CourierApplication.query.filter_by(status=APPLICATION_PENDING).count(),
+    }
+
+
+@admin_bp.patch("/courier-applications/<int:application_id>/approve")
+@admin_required
+def approve_application(application_id):
+    """Approve an applicant and issue them a company rider login."""
+    admin = current_user()
+    application = _application_or_404(application_id)
+    data = application_decision_schema.load(request.get_json() or {})
+
+    rider, password = onboarding.create_rider_account(application)
+
+    application.status = APPLICATION_APPROVED
+    application.courier_id = rider.id
+    application.company_email = rider.email
+    application.temporary_password = password
+    application.reviewed_by_id = admin.id
+    application.reviewed_at = utcnow()
+    application.review_note = data.get("note")
+
+    db.session.commit()
+
+    _email_decision(application, rider=rider, password=password)
+
+    return {
+        "application": courier_application_schema.dump(application),
+        "credentials": {"email": rider.email, "password": password},
+    }
+
+
+@admin_bp.patch("/courier-applications/<int:application_id>/reject")
+@admin_required
+def reject_application(application_id):
+    """Turn an applicant down, with a reason they can read."""
+    admin = current_user()
+    application = _application_or_404(application_id)
+    data = application_decision_schema.load(request.get_json() or {})
+
+    application.status = APPLICATION_REJECTED
+    application.reviewed_by_id = admin.id
+    application.reviewed_at = utcnow()
+    application.review_note = data.get("note")
+
+    db.session.commit()
+
+    _email_decision(application)
+
+    return {"application": courier_application_schema.dump(application)}
+
+
+def _application_or_404(application_id):
+    application = db.session.get(CourierApplication, application_id)
+    if application is None:
+        raise NotFoundError("Application not found")
+    if application.status != APPLICATION_PENDING:
+        raise ConflictError(f"This application was already {application.status}")
+    return application
+
+
+def _email_decision(application, rider=None, password=None):
+    """Tell the applicant on their personal address. The company address has no inbox."""
+    recipient = application.applicant.notification_email
+
+    if rider is None:
+        note = application.review_note or "We are not able to take you on at the moment."
+        mailer.send_email(
+            "Your Deliveroo rider application",
+            recipient,
+            f"Hello {application.full_name},\n\n{note}\n\nYou can apply again at any time.",
+        )
+        return
+
+    body = (
+        f"Hello {application.full_name},\n\n"
+        f"You have been approved to ride with Deliveroo.\n\n"
+        f"Rider sign-in: {rider.email}\n"
+        f"Temporary password: {password}\n\n"
+        f"Sign in with that address and change the password from your profile. "
+        f"Your personal account stays exactly as it is, so you can still send parcels as a customer."
+    )
+    mailer.send_email("You are approved to ride with Deliveroo", recipient, body)
+    sms.send_sms(
+        application.phone,
+        f"Deliveroo: approved. Rider login {rider.email}, temporary password {password}.",
+    )
+
+
+@admin_bp.get("/users/<int:user_id>")
+@admin_required
+def user_detail(user_id):
+    """Everything operations needs about one account. Never the password."""
+    person = db.session.get(User, user_id)
+    if person is None:
+        raise NotFoundError("User not found")
+
+    placed = Order.query.filter(Order.customer_id == person.id)
+    carried = Order.query.filter(Order.courier_id == person.id)
+
+    def spread(query):
+        rows = query.with_entities(Order.status, func.count(Order.id)).group_by(Order.status).all()
+        counts = {status: 0 for status in ORDER_STATUSES}
+        counts.update({status: int(count) for status, count in rows})
+        return counts
+
+    spent = (
+        placed.filter(Order.status == STATUS_DELIVERED)
+        .with_entities(func.coalesce(func.sum(Order.price_kes), 0.0))
+        .scalar()
+        or 0.0
+    )
+    earned_distance = (
+        carried.filter(Order.status == STATUS_DELIVERED)
+        .with_entities(func.coalesce(func.sum(Order.distance_km), 0.0))
+        .scalar()
+        or 0.0
+    )
+
+    application = (
+        CourierApplication.query.filter_by(applicant_id=person.id)
+        .order_by(CourierApplication.created_at.desc())
+        .first()
+    )
+
+    recent = (
+        Order.query.filter(
+            or_(Order.customer_id == person.id, Order.courier_id == person.id)
+        )
+        .order_by(Order.created_at.desc())
+        .limit(5)
+        .all()
+    )
+
+    return {
+        "user": user_schema.dump(person),
+        "activity": {
+            "placed": placed.count(),
+            "placed_by_status": spread(placed),
+            "spent_kes": round(float(spent), 2),
+            "carried": carried.count(),
+            "carried_by_status": spread(carried),
+            "distance_km": round(float(earned_distance), 2),
+        },
+        "application": courier_application_schema.dump(application) if application else None,
+        "recent_orders": [order_schema.dump(order) for order in recent],
     }

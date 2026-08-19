@@ -43,7 +43,6 @@ class OrderSchema(Schema):
 
     customer = fields.Nested(UserSummarySchema, dump_only=True)
     courier = fields.Nested(UserSummarySchema, dump_only=True, allow_none=True)
-    preferred_courier = fields.Nested(UserSummarySchema, dump_only=True, allow_none=True)
     payment_status = fields.Method("resolve_payment_status", dump_only=True)
 
     created_at = fields.DateTime(dump_only=True)
@@ -70,12 +69,11 @@ class OrderCreateSchema(Schema):
     destination_lng = fields.Float(required=True, validate=LNG)
 
     weight_category = fields.Str(required=True, validate=validate.OneOf(list(WEIGHT_CATEGORIES)))
-    weight_kg = fields.Float(required=True, validate=validate.Range(min=0.1, max=50))
+    weight_kg = fields.Float(load_default=None, allow_none=True, validate=validate.Range(min=0.1, max=50))
 
     recipient_name = fields.Str(required=True, validate=validate.Length(min=2, max=120))
     recipient_phone = fields.Str(required=True, validate=validate.Length(min=7, max=24))
     recipient_email = fields.Email(load_default=None, allow_none=True)
-    preferred_courier_id = fields.Int(load_default=None, allow_none=True)
     notes = fields.Str(load_default=None, allow_none=True, validate=validate.Length(max=400))
 
 
@@ -106,7 +104,7 @@ class QuoteSchema(Schema):
     destination_lat = fields.Float(required=True, validate=LAT)
     destination_lng = fields.Float(required=True, validate=LNG)
     weight_category = fields.Str(required=True, validate=validate.OneOf(list(WEIGHT_CATEGORIES)))
-    weight_kg = fields.Float(load_default=1.0, validate=validate.Range(min=0.1, max=50))
+    weight_kg = fields.Float(load_default=None, allow_none=True, validate=validate.Range(min=0.1, max=50))
 
 
 order_schema = OrderSchema()

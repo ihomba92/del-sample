@@ -12,10 +12,8 @@ import { PageContainer, PageHeader } from '@/components/layout/AppShell'
 import {
   clearQuote,
   createOrder,
-  fetchAvailableCouriers,
   fetchCategories,
   fetchQuote,
-  selectAvailableCouriers,
   selectCategories,
   selectQuote,
   selectQuoteError,
@@ -30,11 +28,9 @@ const BLANK = {
   pickup: null,
   destination: null,
   weight_category: 'standard',
-  weight_kg: '',
   recipient_name: '',
   recipient_phone: '',
   recipient_email: '',
-  preferred_courier_id: null,
   notes: '',
 }
 
@@ -44,7 +40,6 @@ export default function NewOrder() {
   const toast = useToast()
 
   const categories = useSelector(selectCategories)
-  const couriers = useSelector(selectAvailableCouriers)
   const quote = useSelector(selectQuote)
   const quoteStatus = useSelector(selectQuoteStatus)
   const quoteError = useSelector(selectQuoteError)
@@ -56,22 +51,20 @@ export default function NewOrder() {
 
   useEffect(() => {
     dispatch(fetchCategories())
-    dispatch(fetchAvailableCouriers())
     return () => {
       dispatch(clearQuote())
     }
   }, [dispatch])
 
   const quotePayload = useMemo(() => {
-    const { pickup, destination, weight_category: category, weight_kg: weight } = values
-    if (!pickup?.lat || !destination?.lat || !category || !weight) return null
+    const { pickup, destination, weight_category: category } = values
+    if (!pickup?.lat || !destination?.lat || !category) return null
     return {
       pickup_lat: pickup.lat,
       pickup_lng: pickup.lng,
       destination_lat: destination.lat,
       destination_lng: destination.lng,
       weight_category: category,
-      weight_kg: Number(weight),
     }
   }, [values])
 
@@ -87,13 +80,13 @@ export default function NewOrder() {
   }, [quotePayload, dispatch])
 
   const canSubmit = useMemo(
-    () => isEmpty(validateOrder(values, categories)) && Boolean(quote),
-    [values, categories, quote],
+    () => isEmpty(validateOrder(values)) && Boolean(quote),
+    [values, quote],
   )
 
   const handleSubmit = async (event) => {
     event.preventDefault()
-    const found = validateOrder(values, categories)
+    const found = validateOrder(values)
     setErrors(found)
     if (!isEmpty(found)) return
 
@@ -106,11 +99,9 @@ export default function NewOrder() {
         destination_lat: values.destination.lat,
         destination_lng: values.destination.lng,
         weight_category: values.weight_category,
-        weight_kg: Number(values.weight_kg),
         recipient_name: values.recipient_name.trim(),
         recipient_phone: values.recipient_phone.trim(),
         recipient_email: values.recipient_email.trim() || null,
-        preferred_courier_id: values.preferred_courier_id,
         notes: values.notes.trim() || null,
       }),
     )
@@ -135,7 +126,6 @@ export default function NewOrder() {
             values={values}
             errors={errors}
             categories={categories}
-            couriers={couriers}
             onChange={setValues}
           />
         </div>
@@ -163,7 +153,7 @@ export default function NewOrder() {
           {!routeReady && quoteStatus !== 'loading' && (
             <div className="rounded-2xl border border-dashed border-slate-200 p-6">
               <p className="font-body text-sm text-slate-500">
-                Choose both locations and a weight to see the price.
+                Choose a pickup point and a destination to see the price.
               </p>
             </div>
           )}
