@@ -75,6 +75,19 @@ class PasswordChangeSchema(Schema):
     )
 
 
+class ForgotPasswordSchema(Schema):
+    email = fields.Email(required=True)
+
+
+class ResetPasswordSchema(Schema):
+    token = fields.Str(required=True, load_only=True)
+    new_password = fields.Str(
+        required=True,
+        load_only=True,
+        validate=validate.Length(min=8, error="Password must be at least 8 characters"),
+    )
+
+
 class AdminUserUpdateSchema(Schema):
     role = fields.Str(validate=validate.OneOf(USER_ROLES))
     is_active = fields.Bool()
@@ -88,3 +101,5 @@ profile_update_schema = ProfileUpdateSchema()
 admin_user_update_schema = AdminUserUpdateSchema()
 availability_schema = AvailabilitySchema()
 password_change_schema = PasswordChangeSchema()
+forgot_password_schema = ForgotPasswordSchema()
+reset_password_schema = ResetPasswordSchema()

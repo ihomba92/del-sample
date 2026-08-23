@@ -41,7 +41,14 @@ class Config:
         if origin.strip()
     ]
 
-    GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY", "")
+    NOMINATIM_URL = os.getenv("NOMINATIM_URL", "https://nominatim.openstreetmap.org")
+    OSRM_URL = os.getenv("OSRM_URL", "https://router.project-osrm.org")
+    GEO_COUNTRY_CODES = os.getenv("GEO_COUNTRY_CODES", "ke")
+    GEO_OFFLINE = _flag("GEO_OFFLINE", "0")
+    GEO_USER_AGENT = os.getenv(
+        "GEO_USER_AGENT",
+        "Deliveroo-Capstone/1.0 (Moringa School; contact admin@deliveroo.co.ke)",
+    )
 
     MAIL_SERVER = os.getenv("MAIL_SERVER", "smtp.gmail.com")
     MAIL_PORT = int(os.getenv("MAIL_PORT", "587"))
@@ -77,6 +84,8 @@ class DevelopmentConfig(Config):
 
 class TestingConfig(Config):
     TESTING = True
+    GEO_OFFLINE = True
+    BCRYPT_LOG_ROUNDS = 4
     SQLALCHEMY_DATABASE_URI = "sqlite://"
     MAIL_SUPPRESS_SEND = True
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(minutes=15)

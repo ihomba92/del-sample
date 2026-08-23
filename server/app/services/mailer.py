@@ -48,3 +48,20 @@ def wrap_html(title, paragraphs, code, footer=None):
       </div>
     </div>
     """
+
+
+def wrap_plain_html(title, paragraphs, footer=None):
+    blocks = "".join("<p style='margin:0 0 14px;line-height:1.6'>" + p + "</p>" for p in paragraphs)
+    tail = (
+        "<p style='margin:20px 0 0;font-size:13px;color:#64748b'>" + footer + "</p>"
+        if footer
+        else ""
+    )
+    return (
+        "<div style=\"font-family:Helvetica,Arial,sans-serif;background:#f1f5f9;padding:32px\">"
+        "<div style=\"max-width:520px;margin:0 auto;background:#ffffff;border-radius:14px;padding:32px\">"
+        "<p style=\"margin:0 0 6px;letter-spacing:.14em;font-size:11px;color:#64748b\">DELIVEROO</p>"
+        "<h1 style=\"margin:0 0 18px;font-size:22px;color:#0f172a\">" + title + "</h1>"
+        + blocks + tail +
+        "</div></div>"
+    )

@@ -284,3 +284,30 @@ def channel_status():
         "email": not current_app.config.get("MAIL_SUPPRESS_SEND", True),
         "sms": sms.is_configured(),
     }
+
+
+def password_reset(user, link, minutes):
+    """Send a single-use password reset link. Falls back to the log when SMTP is off."""
+    recipient = user.contact_email or user.email
+    if not recipient:
+        return False
+
+    first = (user.name or "there").split()[0]
+    title = "Reset your password"
+    paragraphs = [
+        "Hi " + first + ", we received a request to reset your Deliveroo password.",
+        "<a href='" + link + "' style='color:#0b8c64;font-weight:600'>Choose a new password</a>",
+        "This link works once and expires in " + str(minutes) + " minutes.",
+        "If you did not ask for this, ignore this email and nothing will change.",
+    ]
+    plain = (
+        "Hi " + first + ", reset your Deliveroo password here: " + link + "\n"
+        "This link works once and expires in " + str(minutes) + " minutes.\n"
+        "If you did not ask for this, ignore this email and nothing will change."
+    )
+    return mailer.send_email(
+        title,
+        recipient,
+        plain,
+        mailer.wrap_plain_html(title, paragraphs, "Deliveroo Logistics, Nairobi"),
+    )
