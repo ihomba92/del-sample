@@ -2,10 +2,11 @@ import { Link } from 'react-router-dom'
 
 import Button from '@/components/ui/Button'
 import Figure from '@/components/ui/Figure'
-import { PageContainer } from '@/components/layout/AppShell'
+import { PageContainer } from '@/components/layout/AppShell' 
 import { CONTACT, mapsLink } from '@/utils/constants'
 import { IMAGES } from '@/utils/media'
 
+//Initialised components of the page
 const VALUES = [
   {
     title: 'Price before promise',
@@ -94,7 +95,7 @@ export default function About() {
             </div>
           </div>
           <Figure
-            src={IMAGES.parcelStack}
+            src={IMAGES.teamPlanning}
             alt="Stacked parcels ready for dispatch"
             className="aspect-[4/5] w-full"
             tone="brand"

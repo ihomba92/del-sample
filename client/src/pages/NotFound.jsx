@@ -5,6 +5,7 @@ import { PageContainer } from '@/components/layout/AppShell'
 import { useAuth } from '@/hooks/useAuth'
 import { HOME_BY_ROLE } from '@/utils/constants'
 
+//Added fallback page incase of server error
 export default function NotFound() {
   const { isAuthenticated, role } = useAuth()
   const home = isAuthenticated ? HOME_BY_ROLE[role] || '/dashboard' : '/'
@@ -21,7 +22,7 @@ export default function NotFound() {
         </p>
         <div className="mt-8 flex justify-center">
           <Button as={Link} to={home} size="lg" variant="dark">
-            Back to safety
+            Back to previous page?
           </Button>
         </div>
       </div>

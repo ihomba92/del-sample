@@ -8,6 +8,7 @@ import { IMAGES } from '@/utils/media'
 import { ordersApi } from '@/api/ordersApi'
 import { money } from '@/utils/formatters'
 
+// Initialised fallback tiers incase of slow loading
 const FALLBACK_TIERS = [
   { value: 'light', label: 'Light', description: 'Documents and small packets', max_kg: 2, multiplier: 1.0, handling_kes: 0 },
   { value: 'standard', label: 'Standard', description: 'Shoeboxes, electronics, clothing', max_kg: 5, multiplier: 1.35, handling_kes: 60 },
@@ -15,6 +16,7 @@ const FALLBACK_TIERS = [
   { value: 'bulk', label: 'Bulk', description: 'Furniture and pallet loads', max_kg: 50, multiplier: 2.6, handling_kes: 420 },
 ]
 
+// Description of deliveroo features
 const CAPABILITIES = [
   {
     title: 'Same-day city runs',
@@ -33,6 +35,7 @@ const CAPABILITIES = [
   },
 ]
 
+// Geographical scope of actice running areas
 const COVERAGE = [
   'Westlands and Parklands',
   'Nairobi CBD',
@@ -44,6 +47,7 @@ const COVERAGE = [
   'Ngong Road and Kikuyu',
 ]
 
+// QnA
 const FAQ = [
   {
     q: 'How is the price calculated?',
