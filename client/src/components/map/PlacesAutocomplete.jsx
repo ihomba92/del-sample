@@ -1,8 +1,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 
 import Input from "@/components/ui/Input";
-
-const NAIROBI_VIEWBOX = "36.65,-1.15,37.05,-1.45";
+import { geoApi } from "@/api/geoApi";
 
 export default function PlacesAutocomplete({
   label,
@@ -55,42 +54,13 @@ export default function PlacesAutocomplete({
     setLoading(true);
 
     try {
-      const url = new URL("https://nominatim.openstreetmap.org/search");
-
-      url.searchParams.set("q", trimmed);
-
-      url.searchParams.set("format", "json");
-
-      url.searchParams.set("addressdetails", "1");
-
-      url.searchParams.set("viewbox", NAIROBI_VIEWBOX);
-
-      url.searchParams.set("bounded", "1");
-
-      url.searchParams.set("limit", "8");
-
-      url.searchParams.set("countrycodes", "ke");
-
-      const response = await fetch(url, {
-        signal: controller.signal,
-        headers: {
-          Accept: "application/json",
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`Nominatim search failed: ${response.status}`);
-      }
-
-      const data = await response.json();
+      const results = await geoApi.search(trimmed, 8, controller.signal);
 
       if (controller.signal.aborted) {
         return;
       }
 
-      console.log("Nominatim suggestions:", data);
-
-      setSuggestions(Array.isArray(data) ? data : []);
+      setSuggestions(Array.isArray(results) ? results : []);
     } catch (error) {
       if (error.name === "AbortError") {
         return;
@@ -137,14 +107,14 @@ export default function PlacesAutocomplete({
     }
 
     const lat = Number(place.lat);
-    const lng = Number(place.lon);
+    const lng = Number(place.lng);
 
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
       console.error("Invalid location returned:", place);
       return;
     }
 
-    const address = place.display_name || place.name || "";
+    const address = place.address || "";
 
     const next = {
       address,
@@ -200,7 +170,7 @@ export default function PlacesAutocomplete({
 
           {!loading &&
             suggestions.map((place) => (
-              <li key={place.place_id}>
+              <li key={`${place.lat},${place.lng}`}>
                 <button
                   type="button"
                   onMouseDown={(event) => {
@@ -210,14 +180,12 @@ export default function PlacesAutocomplete({
                   className="flex w-full flex-col gap-0.5 px-3.5 py-2.5 text-left transition hover:bg-brand-50"
                 >
                   <span className="font-body text-sm font-medium text-slate-800">
-                    {place.name || place.display_name}
+                    {place.address.split(",")[0]}
                   </span>
 
-                  {place.display_name && (
-                    <span className="font-body text-xs text-slate-400">
-                      {place.display_name}
-                    </span>
-                  )}
+                  <span className="font-body text-xs text-slate-400">
+                    {place.address}
+                  </span>
                 </button>
               </li>
             ))}

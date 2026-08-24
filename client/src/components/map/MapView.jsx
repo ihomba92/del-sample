@@ -13,10 +13,7 @@ import "leaflet/dist/leaflet.css";
 
 import Spinner from "@/components/ui/Spinner";
 import { NAIROBI_CENTER } from "@/utils/constants";
-
-const ROUTING_PROFILE = "driving";
-
-const ROUTING_URL = "https://router.project-osrm.org/route/v1";
+import { geoApi } from "@/api/geoApi";
 
 const DEFAULT_ZOOM = 12;
 
@@ -127,36 +124,17 @@ async function getRoute(pickup, destination, signal) {
     return null;
   }
 
-  const coordinates = [
-    `${pickup.lng},${pickup.lat}`,
-    `${destination.lng},${destination.lat}`,
-  ].join(";");
-
-  const url =
-    `${ROUTING_URL}/${ROUTING_PROFILE}/${coordinates}` +
-    `?overview=full&geometries=geojson&steps=false`;
-
-  const response = await fetch(url, {
+  const route = await geoApi.route(
+    {
+      pickup_lat: pickup.lat,
+      pickup_lng: pickup.lng,
+      destination_lat: destination.lat,
+      destination_lng: destination.lng,
+    },
     signal,
-  });
+  );
 
-  if (!response.ok) {
-    throw new Error(`OSRM routing failed: ${response.status}`);
-  }
-
-  const data = await response.json();
-
-  if (data.code !== "Ok") {
-    throw new Error(data.message || "No route found");
-  }
-
-  const route = data.routes?.[0];
-
-  if (!route?.geometry?.coordinates) {
-    throw new Error("OSRM returned no route geometry");
-  }
-
-  return route.geometry.coordinates.map(([lng, lat]) => [lat, lng]);
+  return Array.isArray(route?.coordinates) ? route.coordinates : [];
 }
 
 export default function MapView({
