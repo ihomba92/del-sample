@@ -1,6 +1,7 @@
 import Footer from './Footer'
 import Navbar from './Navbar'
 
+// Created page shell to hold main components on reload
 export default function AppShell({ children }) {
   return (
     <div className="flex min-h-screen flex-col bg-slate-50/60">
@@ -11,7 +12,7 @@ export default function AppShell({ children }) {
   )
 }
 
-export function PageHeader({ eyebrow, title, description, actions }) {
+export function PageHeader({ eyebrow, title, description, actions }) {  //included parts of the page header if present
   return (
     <div className="flex flex-col gap-3.5 border-b border-slate-100 pb-6 sm:flex-row sm:items-end sm:justify-between">
       <div>

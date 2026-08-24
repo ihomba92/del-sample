@@ -1,4 +1,4 @@
-from flask import Blueprint, request
+from flask import Blueprint, current_app, request
 from flask_jwt_extended import (
     create_access_token,
     create_refresh_token,
@@ -8,14 +8,19 @@ from flask_jwt_extended import (
 
 from ..constants import ROLE_ADMIN
 from ..extensions import db
-from ..models import User
+from ..models import PasswordResetToken, User
+from ..models.password_reset import TOKEN_TTL_MINUTES
 from ..schemas import (
+    forgot_password_schema,
     login_schema,
     password_change_schema,
     profile_update_schema,
     register_schema,
+    reset_password_schema,
     user_schema,
 )
+from ..services import notifications
+from ..utils.clock import utcnow
 from ..utils.decorators import REVOKED_TOKENS, current_user
 from ..utils.errors import ApiError, ConflictError
 
@@ -114,6 +119,54 @@ def change_password():
     db.session.commit()
 
     return {"message": "Password updated"}
+
+
+def _reset_link(raw_token):
+    origins = current_app.config.get("CLIENT_ORIGINS") or ["http://localhost:5173"]
+    base = current_app.config.get("APP_BASE_URL") or origins[0]
+    return base.rstrip("/") + "/reset-password?token=" + raw_token
+
+
+@auth_bp.post("/forgot-password")
+def forgot_password():
+    """Start a password reset. The response never reveals whether the email exists."""
+    data = forgot_password_schema.load(request.get_json() or {})
+    email = data["email"].strip().lower()
+
+    user = User.query.filter(db.func.lower(User.email) == email).first()
+
+    if user is not None and user.is_active:
+        PasswordResetToken.query.filter_by(user_id=user.id, used_at=None).update(
+            {"used_at": utcnow()}
+        )
+        record, raw = PasswordResetToken.issue(user)
+        db.session.add(record)
+        db.session.commit()
+        notifications.password_reset(user, _reset_link(raw), TOKEN_TTL_MINUTES)
+
+    return {"message": "If that email is registered, a reset link is on its way."}
+
+
+@auth_bp.post("/reset-password")
+def reset_password():
+    """Finish a password reset using the single-use token from the email."""
+    data = reset_password_schema.load(request.get_json() or {})
+    record = PasswordResetToken.query.filter_by(
+        token_hash=PasswordResetToken.hash_token(data["token"])
+    ).first()
+
+    if record is None or not record.is_valid:
+        raise ApiError("This reset link is invalid or has already been used", 400)
+
+    user = record.user
+    if user is None or not user.is_active:
+        raise ApiError("This account can no longer be reset", 400)
+
+    user.password = data["new_password"]
+    record.used_at = utcnow()
+    db.session.commit()
+
+    return {"message": "Password reset. You can sign in now."}
 
 
 @auth_bp.post("/logout")

@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 
 import { PUBLIC_NAV } from '@/utils/constants'
 
+//Initialised properties to be used in the Footer component
 const COLUMNS = [
   {
     heading: 'Company',
